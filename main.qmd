@@ -1,0 +1,91 @@
+---
+title: "Skewness and staging: Does the floor effect induce bias in multilevel AR(1) models?"
+subtitle: "Reproducible codes"
+author: "MH Manuel Haqiqatkhah"
+format:
+  html:
+    code-fold: true
+    code-tools: true
+    code-summary: "Show the code"
+execute:
+  enabled: true
+  echo: true
+  include: true
+  warning: false
+  error: false
+editor: visual
+---
+
+# Introduction {#sec-introduction}
+
+This document contains the reproducible code for the manuscript Skewness and staging: Does the floor effect induce bias in multilevel AR(1) models? by M. M. Haqiqatkhah, O. Ryan, and E. L. Hamaker. please cite as:
+
+...
+
+In this study, we simulated multilevel data from three data generating mechanisms (DGMs), namely, the AR(1, $\chi^2$AR(1), BinAR(1), and PoDAR(1) models with different parameter sets.\
+For details, see the paper.
+
+The simulation was conducted using the following modular pipeline design, inspired by Bien's R package `simulator` (2016)[^1], consisting of the following components:
+
+[^1]: Bien, J. (2016). The Simulator: An Engine to Streamline Simulations. *ArXiv:1607.00021 \[Stat\]*. <http://arxiv.org/abs/1607.00021>
+
+1.  Simulation: generating the datasets
+2.  Analysis: modeling the data
+3.  Harvesting: collecting the relevant parameter estimates
+4.  Reporting: making tables and plots
+
+The outcomes of the components are saved in separate `.rds` files and indexed by unique, descriptive names, and each replication is given a unique numeric identifier that is also used as the random seed used to generate the dataset within each replication. The file names and address are stored in two dataframes along with model parameters used to generate each dataset, and these dataframes are used when reading and writing data files in other components.
+
+In what follows we describe the steps and provide the codes used in this study. In the other tab of this document, we provide the code to generate additional plots shown in the paper. Note that although the codes provided here are cleaned as much as possible, they are not necessarily succinctly written; some functions were written to accommodate the most general functionalities which turned out to be not necessary for the simulation study.
+
+Before we begin, we need to read the scripts to include them in this document. By default, none of the scripts run here (as they are time consuming). To run the scripts of each component, you can change the fololowing variables to `TRUE` and re-render the document:
+
+```{r}
+#| eval: true
+runComponent_Simulation <- FALSE
+runComponent_Analysis <- FALSE
+runComponent_Harvesting <- FALSE
+runComponent_Reporting <- FALSE
+```
+
+In case you want to change the scripts (e.g., to run a smaller portion of the simulation, or try other parameters, etc.), you should look up the `kintr` parameters called in each chunk (with `<<some_param>>`) and find the corresponding code (under `## @knitr some_param`) in the `scripts` folder.
+
+```{r}
+#| label: setup
+#| echo: false
+#| include: false
+#| eval: true
+scripts <- list.files(path = "scripts/",
+                      pattern = ".r",
+                      full.names = TRUE)
+
+sapply(scripts, knitr::read_chunk)
+
+runComponent_Initialization <- runComponent_Simulation | runComponent_Analysis | runComponent_Harvesting | runComponent_Reporting
+
+```
+
+```{r, eval = runComponent_Initialization}
+#| include: false
+<<load_packages>>
+```
+
+## The Simulation component
+
+In this component, we first defined the DGMs used a function
+
+```{r, file="scripts/requirements.r"}
+#| eval: false
+```
+
+Or with Quarto syntax:
+
+```{r, eval = runComponent_Simulation}
+#| file: "scripts/requirements.r"
+```
+
+Or with `@knitr` calls:
+
+```{r, eval = runComponent_Simulation}
+<<load_packages>>
+```
