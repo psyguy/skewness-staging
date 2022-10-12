@@ -6,7 +6,17 @@ format:
   html:
     code-fold: true
     code-tools: true
+    #code-overflow: scroll
+    code-line-numbers: true
+    toc: true
+    toc-location: right
+    toc-depth: 4
     code-summary: "Show the code"
+    reference-location: margin
+    citation-location: margin
+    # theme:
+    #   light: litera
+    #   dark: darkly
 execute:
   enabled: true
   echo: true
@@ -14,6 +24,7 @@ execute:
   warning: false
   error: false
 editor: visual
+bibliography: references.bib
 ---
 
 # Introduction {#sec-introduction}
@@ -25,23 +36,30 @@ This document contains the reproducible code for the manuscript Skewness and sta
 In this study, we simulated multilevel data from three data generating mechanisms (DGMs), namely, the AR(1, $\chi^2$AR(1), BinAR(1), and PoDAR(1) models with different parameter sets.\
 For details, see the paper.
 
-The simulation was conducted using the following modular pipeline design, inspired by Bien's R package `simulator` (2016)[^1], consisting of the following components:
+The simulation was conducted using the following modular pipeline design, inspired by Bien's R package `simulator` [-@bien_2016_SimulatorEngineStreamline], consisting of the following **components**:
 
-[^1]: Bien, J. (2016). The Simulator: An Engine to Streamline Simulations. *ArXiv:1607.00021 \[Stat\]*. <http://arxiv.org/abs/1607.00021>
+A.  *Simulation*: generating the datasets
+B.  *Analysis*: modeling the data
+C.  *Harvesting*: collecting the relevant parameter estimates
+D.  *Reporting*: making tables and plots
 
-1.  Simulation: generating the datasets
-2.  Analysis: modeling the data
-3.  Harvesting: collecting the relevant parameter estimates
-4.  Reporting: making tables and plots
+And the components were placed in a **pipeline**, that managed:
 
-The outcomes of the components are saved in separate `.rds` files and indexed by unique, descriptive names, and each replication is given a unique numeric identifier that is also used as the random seed used to generate the dataset within each replication. The file names and address are stored in two dataframes along with model parameters used to generate each dataset, and these dataframes are used when reading and writing data files in other components.
+1.  Making the simulation design matrix that include all relevant conditions
+2.  Book-keeping data files belonging to each replication of each condition
+3.  Performing simulations in batch
+4.  Performing Analyses in batch
+5.  Collecting the data in batch
 
-In what follows we describe the steps and provide the codes used in this study. In the other tab of this document, we provide the code to generate additional plots shown in the paper. Note that although the codes provided here are cleaned as much as possible, they are not necessarily succinctly written; some functions were written to accommodate the most general functionalities which turned out to be not necessary for the simulation study.
+This document is structured as follows. In @sec-components, we explain the four components and the functions used therein. Then, in @sec-pipeline we explain the wrapper functions used in the pipeline, and show how the pipeline was---and can be---executed. Finally, in @sec-figures, we discuss how the harvested data was used to make the figures used in the paper (and others that were not included).
 
-Before we begin, we need to read the scripts to include them in this document. By default, none of the scripts run here (as they are time consuming). To run the scripts of each component, you can change the fololowing variables to `TRUE` and re-render the document:
+<!--# In what follows we describe the steps and provide the codes used in this study. In the other tab of this document, we provide the code to generate additional plots shown in the paper. Note that although the codes provided here are cleaned as much as possible, they are not necessarily succinctly written; some functions were written to accommodate the most general functionalities which turned out to be not necessary for the simulation study. -->
+
+Before we begin, we need to read the scripts to include them in this document. By default, none of the scripts run here (as they are time consuming). To run the scripts of each component, you can change the following variables to `TRUE` and re-render the document:
 
 ```{r}
 #| eval: true
+#| code-fold: false
 runComponent_Simulation <- FALSE
 runComponent_Analysis <- FALSE
 runComponent_Harvesting <- FALSE
@@ -70,22 +88,90 @@ runComponent_Initialization <- runComponent_Simulation | runComponent_Analysis |
 <<load_packages>>
 ```
 
+# Core components {#sec-components}
+
 ## The Simulation component
 
-In this component, we first defined the DGMs used a function
+The generated data
 
-```{r, file="scripts/requirements.r"}
-#| eval: false
-```
+### Data-generating models specifications
 
-Or with Quarto syntax:
+First we define functions for each data-generating models (DGMs) that can produce univariate, single-subject ($N=1$) time series of desired length $T$ (default: `T = 100`) with the two canonical parameters and a given random seed (default: `seed = 0`). All model(-implied) parameters are saved in a list (called `pa`).
+
+For each model, the first observation ($X_1$) is randomly drawn from the model-implied marginal distribution, to eliminate the need for removing the burn-in window in the beginning of the data. After the data is generated, in case the argument `only.ts` is set to be `TRUE`, the raw data (as a vector of length `T`) is returned. Otherwise, the function calculates empirical dynamic ($\phi$) and marginal ($\mu$, $\sigma^2$, and $\gamma$) parameters based on the simulated data, and save it in a list (`Empirical.Parameters`). Furthermore, two $\LaTeX$-ready strings (`Model.Description` and `Model.Description.Short`) are made to include a summary of the model parameters, which can be used, e.g., in plots. Finally, in case `only.ts != TRUE`, the function returns a list consisting of the time series (stored in `x`), verbal description of the dataset (`Model.Description` and `Model.Description.Short`), theoretical (i.e., model-implied) parameters (`Model.Parameters`), and empirical (i.e., sample) estimated parameters (`Empirical.Parameters`).
+
+::: panel-tabset
+## The AR(1) model
+
+The canonical parameters of the AR(1) model with normally distributed residuals (which we referred to as `NAR(1)` in the simulation) are the autoregressive parameter $\phi$ (default: `phi = 0.4`), mean $\mu$ (default: `Mean = 50`), and marginal variance $\sigma^2$ (default: `var.marginal = 4`).
 
 ```{r, eval = runComponent_Simulation}
-#| file: "scripts/requirements.r"
+<<dgm_nar>>
 ```
 
-Or with `@knitr` calls:
+## The $\chi^2$AR(1) model
+
+The canonical parameters of the $\chi^2$AR(1) model (which we referred to as `ChiAR(1)` in the simulation) are the autoregressive parameter $\phi$ (default: `phi = 0.4`), and degrees of freedom $\nu$ (default: `nu = 3`). We set the intercept to zero (`c = 0`; see the Supplemental Materials).
+
+```{r, eval = runComponent_Simulation}
+<<dgm_chiar>>
+```
+
+## The BinAR(1) model
+
+The canonical parameters of the BinAR(1) model (which we referred to as `BinAR(1)` in the simulation) are the survival probability $\alpha$ (default: `alpha = 0.5`) and the revival probability $\beta$ (default: `beta = 0.4`). By default, the maximum value on scale $k$ was set to `k = 10`.
+
+```{r, eval = runComponent_Simulation}
+<<dgm_binar>>
+```
+
+## The PoDAR(1) model
+
+The canonical parameters of the PoDAR(1) model (which we referred to as `PoDAR(1)` in the simulation) are the persistence probability $\tau$ (default: `tau = 0.7`) and the average rate $\lambda$ (default: `lambda = 0.5`).
+
+```{r, eval = runComponent_Simulation}
+<<dgm_podar>>
+```
+:::
+
+### General DGM wrappers
+
+As explained in the paper, each model can be specified using two parameters (and "hyper-parameters" such as $c = 0$ for the $\chi^2$AR(1) model and $k$ for the BinAR(1) model. Thus, with two relevant parameters for each model, we may calculate the canonical model parameters and generate data.
+
+To make these calculations easier, we start by writing a function (`dgm_parameterizer`) that calculates all model-implied parameters of a DGM (specified using the `Model` argument) based on the provided parameters, and saves them in a list (`pa`). In case some required parameters are missing, default values are given (e.g., if the autoregressive parameter $\phi$ is not given, it is set to `phi = 0.2` by default)
+
+Then we use another list of model specification
+
+Furthermore, we
+
+::: panel-tabset
+## dgm_parameterizer: calculate model-implied parameters
 
 ```{r, eval = runComponent_Simulation}
 <<load_packages>>
 ```
+
+## dgm_generator: wrapper for DGM functions
+
+```{r, eval = runComponent_Simulation}
+<<dgm_generator>>
+```
+:::
+
+### Dataset generation
+
+# Pipeline {#sec-pipeline}
+
+We implemented each of these tasks in separate functions that were essentially wrapper functions (with parallel-computing implementation) around the modular components. Using these wrapper functions, each replication of each simulated condition was saved in a separate `.rds` file. These data files were fed to the analysis wrapper function whose output was saved in separate `.rds` data files. To collect relevant parameter estimates, another wrapper function was used to read the data files and save the desired parameters in a dataframe, which then used in reporting.
+
+The outcomes of the components are saved in separate `.rds` files and indexed by unique, descriptive names, and each replication is given a unique numeric identifier that is also used as the random seed used to generate the dataset within each replication. The file names and address are stored in two dataframes along with model parameters used to generate each dataset, and these dataframes are used when reading and writing data files in other components.
+
+## Wrapper functions
+
+## Pipeline code
+
+# Making the figures {#sec-figures}
+
+## Simulation results
+
+## Profiles of simulated datasets

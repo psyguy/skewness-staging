@@ -79,6 +79,25 @@ code span.st { color: #4070a0; } /* String */
 code span.va { color: #19177c; } /* Variable */
 code span.vs { color: #4070a0; } /* VerbatimString */
 code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+}
+.hanging div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}
 </style>
 
 
@@ -97,11 +116,38 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 
 </head>
 
-<body class="fullcontent">
+<body>
 
 <div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
-
-<main class="content" id="quarto-document-content">
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+  <nav id="TOC" role="doc-toc">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#sec-introduction" id="toc-sec-introduction" class="nav-link active" data-scroll-target="#sec-introduction">Introduction</a></li>
+  <li><a href="#sec-components" id="toc-sec-components" class="nav-link" data-scroll-target="#sec-components">Core components</a>
+  <ul class="collapse">
+  <li><a href="#the-simulation-component" id="toc-the-simulation-component" class="nav-link" data-scroll-target="#the-simulation-component">The Simulation component</a>
+  <ul class="collapse">
+  <li><a href="#data-generating-models-specifications" id="toc-data-generating-models-specifications" class="nav-link" data-scroll-target="#data-generating-models-specifications">Data-generating models specifications</a></li>
+  <li><a href="#general-dgm-wrappers" id="toc-general-dgm-wrappers" class="nav-link" data-scroll-target="#general-dgm-wrappers">General DGM wrappers</a></li>
+  <li><a href="#dataset-generation" id="toc-dataset-generation" class="nav-link" data-scroll-target="#dataset-generation">Dataset generation</a></li>
+  </ul></li>
+  </ul></li>
+  <li><a href="#sec-pipeline" id="toc-sec-pipeline" class="nav-link" data-scroll-target="#sec-pipeline">Pipeline</a>
+  <ul class="collapse">
+  <li><a href="#wrapper-functions" id="toc-wrapper-functions" class="nav-link" data-scroll-target="#wrapper-functions">Wrapper functions</a></li>
+  <li><a href="#pipeline-code" id="toc-pipeline-code" class="nav-link" data-scroll-target="#pipeline-code">Pipeline code</a></li>
+  </ul></li>
+  <li><a href="#sec-figures" id="toc-sec-figures" class="nav-link" data-scroll-target="#sec-figures">Making the figures</a>
+  <ul class="collapse">
+  <li><a href="#simulation-results" id="toc-simulation-results" class="nav-link" data-scroll-target="#simulation-results">Simulation results</a></li>
+  <li><a href="#profiles-of-simulated-datasets" id="toc-profiles-of-simulated-datasets" class="nav-link" data-scroll-target="#profiles-of-simulated-datasets">Profiles of simulated datasets</a></li>
+  </ul></li>
+  </ul>
+</nav>
+</div>
+<main class="content page-columns page-full" id="quarto-document-content">
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
@@ -126,108 +172,522 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 
 </header>
 
-<section id="sec-introduction" class="level1">
+<section id="sec-introduction" class="level1 page-columns page-full">
 <h1>Introduction</h1>
 <p>This document contains the reproducible code for the manuscript Skewness and staging: Does the floor effect induce bias in multilevel AR(1) models? by M. M. Haqiqatkhah, O. Ryan, and E. L. Hamaker. please cite as:</p>
 <p>…</p>
 <p>In this study, we simulated multilevel data from three data generating mechanisms (DGMs), namely, the AR(1, <span class="math inline">\(\chi^2\)</span>AR(1), BinAR(1), and PoDAR(1) models with different parameter sets.<br>
 For details, see the paper.</p>
-<p>The simulation was conducted using the following modular pipeline design, inspired by Bien’s R package <code>simulator</code> (2016)<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a>, consisting of the following components:</p>
-<ol type="1">
-<li>Simulation: generating the datasets</li>
-<li>Analysis: modeling the data</li>
-<li>Harvesting: collecting the relevant parameter estimates</li>
-<li>Reporting: making tables and plots</li>
+<p>The simulation was conducted using the following modular pipeline design, inspired by Bien’s R package <code>simulator</code> <span class="citation" data-cites="bien_2016_SimulatorEngineStreamline">(<a href="#ref-bien_2016_SimulatorEngineStreamline" role="doc-biblioref">2016</a>)</span>, consisting of the following <strong>components</strong>:</p>
+<div class="no-row-height column-margin column-container"><div id="ref-bien_2016_SimulatorEngineStreamline" class="csl-entry" role="doc-biblioentry">
+Bien, Jacob. 2016. <span>“The Simulator: An Engine to Streamline Simulations.”</span> <em>arXiv:1607.00021 [Stat]</em>, June. <a href="http://arxiv.org/abs/1607.00021">http://arxiv.org/abs/1607.00021</a>.
+</div></div><ol type="A">
+<li><em>Simulation</em>: generating the datasets</li>
+<li><em>Analysis</em>: modeling the data</li>
+<li><em>Harvesting</em>: collecting the relevant parameter estimates</li>
+<li><em>Reporting</em>: making tables and plots</li>
 </ol>
-<p>The outcomes of the components are saved in separate <code>.rds</code> files and indexed by unique, descriptive names, and each replication is given a unique numeric identifier that is also used as the random seed used to generate the dataset within each replication. The file names and address are stored in two dataframes along with model parameters used to generate each dataset, and these dataframes are used when reading and writing data files in other components.</p>
-<p>In what follows we describe the steps and provide the codes used in this study. In the other tab of this document, we provide the code to generate additional plots shown in the paper. Note that although the codes provided here are cleaned as much as possible, they are not necessarily succinctly written; some functions were written to accommodate the most general functionalities which turned out to be not necessary for the simulation study.</p>
-<p>Before we begin, we need to read the scripts to include them in this document. By default, none of the scripts run here (as they are time consuming). To run the scripts of each component, you can change the fololowing variables to <code>TRUE</code> and re-render the document:</p>
+<p>And the components were placed in a <strong>pipeline</strong>, that managed:</p>
+<ol type="1">
+<li>Making the simulation design matrix that include all relevant conditions</li>
+<li>Book-keeping data files belonging to each replication of each condition</li>
+<li>Performing simulations in batch</li>
+<li>Performing Analyses in batch</li>
+<li>Collecting the data in batch</li>
+</ol>
+<p>This document is structured as follows. In <a href="#sec-components">Section&nbsp;2</a>, we explain the four components and the functions used therein. Then, in <a href="#sec-pipeline">Section&nbsp;3</a> we explain the wrapper functions used in the pipeline, and show how the pipeline was—and can be—executed. Finally, in <a href="#sec-figures">Section&nbsp;4</a>, we discuss how the harvested data was used to make the figures used in the paper (and others that were not included).</p>
+<!--# In what follows we describe the steps and provide the codes used in this study. In the other tab of this document, we provide the code to generate additional plots shown in the paper. Note that although the codes provided here are cleaned as much as possible, they are not necessarily succinctly written; some functions were written to accommodate the most general functionalities which turned out to be not necessary for the simulation study. -->
+<p>Before we begin, we need to read the scripts to include them in this document. By default, none of the scripts run here (as they are time consuming). To run the scripts of each component, you can change the following variables to <code>TRUE</code> and re-render the document:</p>
 <div class="cell">
-<details>
-<summary>Show the code</summary>
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>runComponent_Simulation <span class="ot">&lt;-</span> <span class="cn">FALSE</span></span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>runComponent_Analysis <span class="ot">&lt;-</span> <span class="cn">FALSE</span></span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>runComponent_Harvesting <span class="ot">&lt;-</span> <span class="cn">FALSE</span></span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>runComponent_Reporting <span class="ot">&lt;-</span> <span class="cn">FALSE</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</details>
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1"></a>runComponent_Simulation <span class="ot">&lt;-</span> <span class="cn">FALSE</span></span>
+<span id="cb1-2"><a href="#cb1-2"></a>runComponent_Analysis <span class="ot">&lt;-</span> <span class="cn">FALSE</span></span>
+<span id="cb1-3"><a href="#cb1-3"></a>runComponent_Harvesting <span class="ot">&lt;-</span> <span class="cn">FALSE</span></span>
+<span id="cb1-4"><a href="#cb1-4"></a>runComponent_Reporting <span class="ot">&lt;-</span> <span class="cn">FALSE</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>In case you want to change the scripts (e.g., to run a smaller portion of the simulation, or try other parameters, etc.), you should look up the <code>kintr</code> parameters called in each chunk (with <code>&lt;&lt;some_param&gt;&gt;</code>) and find the corresponding code (under <code>## @knitr some_param</code>) in the <code>scripts</code> folder.</p>
+</section>
+<section id="sec-components" class="level1">
+<h1>Core components</h1>
 <section id="the-simulation-component" class="level2">
 <h2 class="anchored" data-anchor-id="the-simulation-component">The Simulation component</h2>
-<p>In this component, we first defined the DGMs used a function</p>
-<div class="cell" data-file="scripts/requirements.r">
-<details>
-<summary>Show the code</summary>
-<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="do">## @knitr load_packages</span></span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>libs_used <span class="ot">&lt;-</span></span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">c</span>(<span class="st">"tidyverse"</span>,</span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">"knitr"</span>,</span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">"MplusAutomation"</span>,</span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="st">"doSNOW"</span>,</span>
-<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="st">"here"</span>,</span>
-<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    <span class="st">"primes"</span>)</span>
-<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="st">"meh"</span>)</span>
-<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>libs_needed <span class="ot">&lt;-</span> libs_used[<span class="sc">!</span>libs_used <span class="sc">%in%</span> <span class="fu">installed.packages</span>()]</span>
-<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="fu">sapply</span>(libs_needed, install.packages, <span class="at">dependencies =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a><span class="fu">sapply</span>(libs_used, require, <span class="at">character =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a><span class="do">## @knitr load-fonts</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</details>
-</div>
-<p>Or with Quarto syntax:</p>
-<div class="cell" data-file="scripts/requirements.r">
-<details>
-<summary>Show the code</summary>
-<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="do">## @knitr load_packages</span></span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>libs_used <span class="ot">&lt;-</span></span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">c</span>(<span class="st">"tidyverse"</span>,</span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">"knitr"</span>,</span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">"MplusAutomation"</span>,</span>
-<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>    <span class="st">"doSNOW"</span>,</span>
-<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>    <span class="st">"here"</span>,</span>
-<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>    <span class="st">"primes"</span>)</span>
-<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="st">"meh"</span>)</span>
-<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>libs_needed <span class="ot">&lt;-</span> libs_used[<span class="sc">!</span>libs_used <span class="sc">%in%</span> <span class="fu">installed.packages</span>()]</span>
-<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a><span class="fu">sapply</span>(libs_needed, install.packages, <span class="at">dependencies =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a><span class="fu">sapply</span>(libs_used, require, <span class="at">character =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a><span class="do">## @knitr load-fonts</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</details>
-</div>
-<p>Or with <code>@knitr</code> calls:</p>
+<p>The generated data</p>
+<section id="data-generating-models-specifications" class="level3">
+<h3 class="anchored" data-anchor-id="data-generating-models-specifications">Data-generating models specifications</h3>
+<p>First we define functions for each data-generating models (DGMs) that can produce univariate, single-subject (<span class="math inline">\(N=1\)</span>) time series of desired length <span class="math inline">\(T\)</span> (default: <code>T = 100</code>) with the two canonical parameters and a given random seed (default: <code>seed = 0</code>). All model(-implied) parameters are saved in a list (called <code>pa</code>).</p>
+<p>For each model, the first observation (<span class="math inline">\(X_1\)</span>) is randomly drawn from the model-implied marginal distribution, to eliminate the need for removing the burn-in window in the beginning of the data. After the data is generated, in case the argument <code>only.ts</code> is set to be <code>TRUE</code>, the raw data (as a vector of length <code>T</code>) is returned. Otherwise, the function calculates empirical dynamic (<span class="math inline">\(\phi\)</span>) and marginal (<span class="math inline">\(\mu\)</span>, <span class="math inline">\(\sigma^2\)</span>, and <span class="math inline">\(\gamma\)</span>) parameters based on the simulated data, and save it in a list (<code>Empirical.Parameters</code>). Furthermore, two <span class="math inline">\(\LaTeX\)</span>-ready strings (<code>Model.Description</code> and <code>Model.Description.Short</code>) are made to include a summary of the model parameters, which can be used, e.g., in plots. Finally, in case <code>only.ts != TRUE</code>, the function returns a list consisting of the time series (stored in <code>x</code>), verbal description of the dataset (<code>Model.Description</code> and <code>Model.Description.Short</code>), theoretical (i.e., model-implied) parameters (<code>Model.Parameters</code>), and empirical (i.e., sample) estimated parameters (<code>Empirical.Parameters</code>).</p>
+<div class="panel-tabset">
+<ul class="nav nav-tabs" role="tablist"><li class="nav-item" role="presentation"><a class="nav-link active" id="tabset-1-1-tab" data-bs-toggle="tab" data-bs-target="#tabset-1-1" role="tab" aria-controls="tabset-1-1" aria-selected="true" href="">The AR(1) model</a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-1-2-tab" data-bs-toggle="tab" data-bs-target="#tabset-1-2" role="tab" aria-controls="tabset-1-2" aria-selected="false" href="">The <span class="math inline">\(\chi^2\)</span>AR(1) model</a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-1-3-tab" data-bs-toggle="tab" data-bs-target="#tabset-1-3" role="tab" aria-controls="tabset-1-3" aria-selected="false" href="">The BinAR(1) model</a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-1-4-tab" data-bs-toggle="tab" data-bs-target="#tabset-1-4" role="tab" aria-controls="tabset-1-4" aria-selected="false" href="">The PoDAR(1) model</a></li></ul>
+<div class="tab-content">
+<div id="tabset-1-1" class="tab-pane active" role="tabpanel" aria-labelledby="tabset-1-1-tab">
+<p>The canonical parameters of the AR(1) model with normally distributed residuals (which we referred to as <code>NAR(1)</code> in the simulation) are the autoregressive parameter <span class="math inline">\(\phi\)</span> (default: <code>phi = 0.4</code>), mean <span class="math inline">\(\mu\)</span> (default: <code>Mean = 50</code>), and marginal variance <span class="math inline">\(\sigma^2\)</span> (default: <code>var.marginal = 4</code>).</p>
 <div class="cell">
 <details>
 <summary>Show the code</summary>
-<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>libs_used <span class="ot">&lt;-</span></span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">c</span>(<span class="st">"tidyverse"</span>,</span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">"knitr"</span>,</span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">"MplusAutomation"</span>,</span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">"doSNOW"</span>,</span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">"here"</span>,</span>
-<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    <span class="st">"primes"</span>)</span>
-<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="st">"meh"</span>)</span>
-<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>libs_needed <span class="ot">&lt;-</span> libs_used[<span class="sc">!</span>libs_used <span class="sc">%in%</span> <span class="fu">installed.packages</span>()]</span>
-<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a><span class="fu">sapply</span>(libs_needed, install.packages, <span class="at">dependencies =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a><span class="fu">sapply</span>(libs_used, require, <span class="at">character =</span> <span class="cn">TRUE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1"></a>dgm_nar <span class="ot">&lt;-</span> <span class="cf">function</span>(...){</span>
+<span id="cb2-2"><a href="#cb2-2"></a></span>
+<span id="cb2-3"><a href="#cb2-3"></a>  pa <span class="ot">&lt;-</span> <span class="fu">list</span>(...)</span>
+<span id="cb2-4"><a href="#cb2-4"></a></span>
+<span id="cb2-5"><a href="#cb2-5"></a>  <span class="cf">if</span>(<span class="fu">is.list</span>(pa<span class="sc">$</span>pa)) pa <span class="ot">&lt;-</span> pa<span class="sc">$</span>pa</span>
+<span id="cb2-6"><a href="#cb2-6"></a></span>
+<span id="cb2-7"><a href="#cb2-7"></a>  <span class="do">## setting default seed if not given</span></span>
+<span id="cb2-8"><a href="#cb2-8"></a>  <span class="cf">if</span>(<span class="fu">is.null</span>(pa<span class="sc">$</span>phi)) pa<span class="sc">$</span>phi <span class="ot">&lt;-</span> <span class="fl">0.4</span></span>
+<span id="cb2-9"><a href="#cb2-9"></a>  <span class="cf">if</span>(<span class="fu">is.null</span>(pa<span class="sc">$</span>Mean)) pa<span class="sc">$</span>Mean <span class="ot">&lt;-</span> <span class="dv">50</span></span>
+<span id="cb2-10"><a href="#cb2-10"></a>  <span class="cf">if</span>(<span class="fu">is.null</span>(pa<span class="sc">$</span>var.marginal)) pa<span class="sc">$</span>var.marginal <span class="ot">&lt;-</span> <span class="dv">4</span></span>
+<span id="cb2-11"><a href="#cb2-11"></a>  <span class="cf">if</span>(<span class="fu">is.null</span>(pa<span class="sc">$</span>var.resid)) pa<span class="sc">$</span>var.resid <span class="ot">&lt;-</span> pa<span class="sc">$</span>var.marginal <span class="sc">*</span> (<span class="dv">1</span> <span class="sc">-</span> pa<span class="sc">$</span>phi <span class="sc">^</span> <span class="dv">2</span>)</span>
+<span id="cb2-12"><a href="#cb2-12"></a>  <span class="cf">if</span>(<span class="fu">is.null</span>(pa<span class="sc">$</span>k)) pa<span class="sc">$</span>k <span class="ot">&lt;-</span> <span class="dv">100</span></span>
+<span id="cb2-13"><a href="#cb2-13"></a>  <span class="cf">if</span>(<span class="fu">is.null</span>(pa<span class="sc">$</span>T)) pa<span class="sc">$</span>T <span class="ot">&lt;-</span> <span class="dv">100</span></span>
+<span id="cb2-14"><a href="#cb2-14"></a>  <span class="cf">if</span>(<span class="fu">is.null</span>(pa<span class="sc">$</span>seed)) pa<span class="sc">$</span>seed <span class="ot">&lt;-</span> <span class="dv">0</span></span>
+<span id="cb2-15"><a href="#cb2-15"></a></span>
+<span id="cb2-16"><a href="#cb2-16"></a>  <span class="do">## Making sure var.marginal and var.resid are correctly related</span></span>
+<span id="cb2-17"><a href="#cb2-17"></a>  pa<span class="sc">$</span>var.marginal <span class="ot">&lt;-</span> pa<span class="sc">$</span>var.resid <span class="sc">/</span> (<span class="dv">1</span> <span class="sc">-</span> pa<span class="sc">$</span>phi <span class="sc">^</span> <span class="dv">2</span>)</span>
+<span id="cb2-18"><a href="#cb2-18"></a></span>
+<span id="cb2-19"><a href="#cb2-19"></a>  <span class="do">### first make time series centered around zero</span></span>
+<span id="cb2-20"><a href="#cb2-20"></a>  <span class="do">## drawing the first sample x_cent_1</span></span>
+<span id="cb2-21"><a href="#cb2-21"></a>  <span class="fu">set.seed</span>(pa<span class="sc">$</span>seed)</span>
+<span id="cb2-22"><a href="#cb2-22"></a>  x_cent <span class="ot">&lt;-</span> <span class="fu">rep</span>(<span class="cn">NA</span>, pa<span class="sc">$</span>T)</span>
+<span id="cb2-23"><a href="#cb2-23"></a>  x_cent[<span class="dv">1</span>] <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(<span class="at">n =</span> <span class="dv">1</span>,</span>
+<span id="cb2-24"><a href="#cb2-24"></a>                     <span class="at">mean =</span> <span class="dv">0</span>,</span>
+<span id="cb2-25"><a href="#cb2-25"></a>                     <span class="at">sd =</span> <span class="fu">sqrt</span>(pa<span class="sc">$</span>var.marginal)</span>
+<span id="cb2-26"><a href="#cb2-26"></a>  )</span>
+<span id="cb2-27"><a href="#cb2-27"></a></span>
+<span id="cb2-28"><a href="#cb2-28"></a>  <span class="do">## making the rest of the centered time series</span></span>
+<span id="cb2-29"><a href="#cb2-29"></a>  <span class="cf">for</span> (t <span class="cf">in</span> <span class="dv">2</span><span class="sc">:</span>pa<span class="sc">$</span>T){</span>
+<span id="cb2-30"><a href="#cb2-30"></a></span>
+<span id="cb2-31"><a href="#cb2-31"></a>    x_cent[t] <span class="ot">&lt;-</span> pa<span class="sc">$</span>phi<span class="sc">*</span>x_cent[t<span class="dv">-1</span>] <span class="sc">+</span> <span class="fu">rnorm</span>(<span class="at">n =</span> <span class="dv">1</span>,</span>
+<span id="cb2-32"><a href="#cb2-32"></a>                                            <span class="at">mean =</span> <span class="dv">0</span>,</span>
+<span id="cb2-33"><a href="#cb2-33"></a>                                            <span class="at">sd =</span> <span class="fu">sqrt</span>(pa<span class="sc">$</span>var.resid)</span>
+<span id="cb2-34"><a href="#cb2-34"></a>    )</span>
+<span id="cb2-35"><a href="#cb2-35"></a>  }</span>
+<span id="cb2-36"><a href="#cb2-36"></a>  <span class="do">## adding the mean to the centered time series</span></span>
+<span id="cb2-37"><a href="#cb2-37"></a>  x <span class="ot">&lt;-</span> x_cent <span class="sc">+</span> pa<span class="sc">$</span>Mean</span>
+<span id="cb2-38"><a href="#cb2-38"></a></span>
+<span id="cb2-39"><a href="#cb2-39"></a>  <span class="do">## quick output of raw time series without book-keeping variables/parameters</span></span>
+<span id="cb2-40"><a href="#cb2-40"></a>  <span class="cf">if</span>(<span class="sc">!</span><span class="fu">is.null</span>(pa<span class="sc">$</span>only.ts))</span>
+<span id="cb2-41"><a href="#cb2-41"></a>    <span class="cf">if</span>(pa<span class="sc">$</span>only.ts<span class="sc">==</span><span class="cn">TRUE</span>) <span class="fu">return</span>(x)</span>
+<span id="cb2-42"><a href="#cb2-42"></a></span>
+<span id="cb2-43"><a href="#cb2-43"></a>  Empirical.Parameters <span class="ot">=</span> <span class="fu">list</span>(<span class="at">Mean =</span> <span class="fu">mean</span>(x),</span>
+<span id="cb2-44"><a href="#cb2-44"></a>                              <span class="at">Variance =</span> <span class="fu">var</span>(x),</span>
+<span id="cb2-45"><a href="#cb2-45"></a>                              <span class="at">Skewness =</span> moments<span class="sc">::</span><span class="fu">skewness</span>(x),</span>
+<span id="cb2-46"><a href="#cb2-46"></a>                              <span class="at">AR =</span> <span class="fu">acf</span>(x, <span class="at">lag.max =</span> <span class="dv">1</span>, <span class="at">plot =</span> <span class="cn">FALSE</span>)<span class="sc">$</span>acf[<span class="dv">2</span>]</span>
+<span id="cb2-47"><a href="#cb2-47"></a>  )</span>
+<span id="cb2-48"><a href="#cb2-48"></a></span>
+<span id="cb2-49"><a href="#cb2-49"></a>  <span class="do">## making a LaTeX-ready list description of the model</span></span>
+<span id="cb2-50"><a href="#cb2-50"></a>  Model.Description <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">"</span><span class="sc">\\</span><span class="st">mu = "</span>,</span>
+<span id="cb2-51"><a href="#cb2-51"></a>                              <span class="fu">round</span>(pa<span class="sc">$</span>Mean,<span class="dv">2</span>),</span>
+<span id="cb2-52"><a href="#cb2-52"></a>                              <span class="st">"("</span>,</span>
+<span id="cb2-53"><a href="#cb2-53"></a>                              <span class="fu">round</span>(Empirical.Parameters<span class="sc">$</span>Mean,<span class="dv">2</span>),</span>
+<span id="cb2-54"><a href="#cb2-54"></a>                              <span class="st">")"</span>,</span>
+<span id="cb2-55"><a href="#cb2-55"></a>                              <span class="st">",</span><span class="sc">\\</span><span class="st">; </span><span class="sc">\\</span><span class="st">gamma = "</span>,</span>
+<span id="cb2-56"><a href="#cb2-56"></a>                              <span class="dv">0</span>,</span>
+<span id="cb2-57"><a href="#cb2-57"></a>                              <span class="st">"("</span>,</span>
+<span id="cb2-58"><a href="#cb2-58"></a>                              <span class="fu">round</span>(Empirical.Parameters<span class="sc">$</span>Skewness,<span class="dv">2</span>),</span>
+<span id="cb2-59"><a href="#cb2-59"></a>                              <span class="st">")"</span>,</span>
+<span id="cb2-60"><a href="#cb2-60"></a>                              <span class="st">",</span><span class="sc">\\</span><span class="st">; </span><span class="sc">\\</span><span class="st">phi = "</span>,</span>
+<span id="cb2-61"><a href="#cb2-61"></a>                              <span class="fu">round</span>(pa<span class="sc">$</span>phi,<span class="dv">2</span>),</span>
+<span id="cb2-62"><a href="#cb2-62"></a>                              <span class="st">"("</span>,</span>
+<span id="cb2-63"><a href="#cb2-63"></a>                              <span class="fu">round</span>(Empirical.Parameters<span class="sc">$</span>AR,<span class="dv">2</span>),</span>
+<span id="cb2-64"><a href="#cb2-64"></a>                              <span class="st">")"</span>,</span>
+<span id="cb2-65"><a href="#cb2-65"></a>                              <span class="st">",</span><span class="sc">\\</span><span class="st">; </span><span class="sc">\\</span><span class="st">sigma^2_{marginal} = "</span>,</span>
+<span id="cb2-66"><a href="#cb2-66"></a>                              <span class="fu">round</span>(pa<span class="sc">$</span>var.marginal,<span class="dv">2</span>),</span>
+<span id="cb2-67"><a href="#cb2-67"></a>                              <span class="st">"("</span>,</span>
+<span id="cb2-68"><a href="#cb2-68"></a>                              <span class="fu">round</span>(Empirical.Parameters<span class="sc">$</span>Variance,<span class="dv">2</span>),</span>
+<span id="cb2-69"><a href="#cb2-69"></a>                              <span class="st">")"</span>,</span>
+<span id="cb2-70"><a href="#cb2-70"></a>                              <span class="st">",</span><span class="sc">\\</span><span class="st">; T = "</span>,</span>
+<span id="cb2-71"><a href="#cb2-71"></a>                              pa<span class="sc">$</span>T,</span>
+<span id="cb2-72"><a href="#cb2-72"></a>                              <span class="st">"$"</span>)</span>
+<span id="cb2-73"><a href="#cb2-73"></a></span>
+<span id="cb2-74"><a href="#cb2-74"></a>  Model.Description.Short <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">"$</span><span class="sc">\\</span><span class="st">mu = "</span>,</span>
+<span id="cb2-75"><a href="#cb2-75"></a>                                    <span class="fu">round</span>(pa<span class="sc">$</span>Mean, <span class="dv">2</span>),</span>
+<span id="cb2-76"><a href="#cb2-76"></a>                                    <span class="st">",</span><span class="sc">\\</span><span class="st">; </span><span class="sc">\\</span><span class="st">sigma^2_{</span><span class="sc">\\</span><span class="st">epsilon} = "</span>,</span>
+<span id="cb2-77"><a href="#cb2-77"></a>                                    <span class="fu">round</span>(pa<span class="sc">$</span>var.resid, <span class="dv">2</span>),</span>
+<span id="cb2-78"><a href="#cb2-78"></a>                                    <span class="st">",</span><span class="sc">\\</span><span class="st">; </span><span class="sc">\\</span><span class="st">phi = "</span>,</span>
+<span id="cb2-79"><a href="#cb2-79"></a>                                    <span class="fu">round</span>(pa<span class="sc">$</span>phi, <span class="dv">2</span>),</span>
+<span id="cb2-80"><a href="#cb2-80"></a>                                    <span class="st">"</span><span class="sc">\\</span><span class="st">; </span><span class="sc">\\</span><span class="st">rightarrow"</span>,</span>
+<span id="cb2-81"><a href="#cb2-81"></a>                                    <span class="st">"</span><span class="sc">\\</span><span class="st">; </span><span class="sc">\\</span><span class="st">sigma^2 = "</span>,</span>
+<span id="cb2-82"><a href="#cb2-82"></a>                                    <span class="fu">round</span>(Empirical.Parameters<span class="sc">$</span>Variance,<span class="dv">2</span>),</span>
+<span id="cb2-83"><a href="#cb2-83"></a>                                    <span class="st">",</span><span class="sc">\\</span><span class="st">; </span><span class="sc">\\</span><span class="st">gamma = "</span>,</span>
+<span id="cb2-84"><a href="#cb2-84"></a>                                    <span class="fu">round</span>(Empirical.Parameters<span class="sc">$</span>Skewness,<span class="dv">2</span>),</span>
+<span id="cb2-85"><a href="#cb2-85"></a>                                    <span class="st">"$"</span>)</span>
+<span id="cb2-86"><a href="#cb2-86"></a></span>
+<span id="cb2-87"><a href="#cb2-87"></a></span>
+<span id="cb2-88"><a href="#cb2-88"></a>  <span class="do">## making the output object</span></span>
+<span id="cb2-89"><a href="#cb2-89"></a>  output <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="at">x =</span> x,</span>
+<span id="cb2-90"><a href="#cb2-90"></a>                 <span class="at">Model.Description =</span> Model.Description,</span>
+<span id="cb2-91"><a href="#cb2-91"></a>                 <span class="at">Model.Description.Short =</span> Model.Description.Short,</span>
+<span id="cb2-92"><a href="#cb2-92"></a>                 <span class="at">Model.Parameters =</span> pa,</span>
+<span id="cb2-93"><a href="#cb2-93"></a>                 <span class="at">Empirical.Parameters =</span> Empirical.Parameters)</span>
+<span id="cb2-94"><a href="#cb2-94"></a></span>
+<span id="cb2-95"><a href="#cb2-95"></a>  <span class="fu">return</span>(output)</span>
+<span id="cb2-96"><a href="#cb2-96"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
+</div>
+<div id="tabset-1-2" class="tab-pane" role="tabpanel" aria-labelledby="tabset-1-2-tab">
+<p>The canonical parameters of the <span class="math inline">\(\chi^2\)</span>AR(1) model (which we referred to as <code>ChiAR(1)</code> in the simulation) are the autoregressive parameter <span class="math inline">\(\phi\)</span> (default: <code>phi = 0.4</code>), and degrees of freedom <span class="math inline">\(\nu\)</span> (default: <code>nu = 3</code>). We set the intercept to zero (<code>c = 0</code>; see the Supplemental Materials).</p>
+<div class="cell">
+<details>
+<summary>Show the code</summary>
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1"></a>dgm_chiar <span class="ot">&lt;-</span> <span class="cf">function</span>(...){</span>
+<span id="cb3-2"><a href="#cb3-2"></a></span>
+<span id="cb3-3"><a href="#cb3-3"></a>  pa <span class="ot">&lt;-</span> <span class="fu">list</span>(...)</span>
+<span id="cb3-4"><a href="#cb3-4"></a></span>
+<span id="cb3-5"><a href="#cb3-5"></a>  <span class="cf">if</span>(<span class="fu">is.list</span>(pa<span class="sc">$</span>pa)) pa <span class="ot">&lt;-</span> pa<span class="sc">$</span>pa</span>
+<span id="cb3-6"><a href="#cb3-6"></a></span>
+<span id="cb3-7"><a href="#cb3-7"></a>  <span class="do">## setting default seed if not given</span></span>
+<span id="cb3-8"><a href="#cb3-8"></a>  <span class="cf">if</span>(<span class="fu">is.null</span>(pa<span class="sc">$</span>phi)) pa<span class="sc">$</span>phi <span class="ot">&lt;-</span> <span class="fl">0.4</span></span>
+<span id="cb3-9"><a href="#cb3-9"></a>  <span class="cf">if</span>(<span class="fu">is.null</span>(pa<span class="sc">$</span>nu)) pa<span class="sc">$</span>nu <span class="ot">&lt;-</span> <span class="dv">3</span></span>
+<span id="cb3-10"><a href="#cb3-10"></a>  <span class="cf">if</span>(<span class="fu">is.null</span>(pa<span class="sc">$</span>c)) pa<span class="sc">$</span>c <span class="ot">&lt;-</span> <span class="dv">0</span></span>
+<span id="cb3-11"><a href="#cb3-11"></a>  <span class="cf">if</span>(<span class="fu">is.null</span>(pa<span class="sc">$</span>k)) pa<span class="sc">$</span>k <span class="ot">&lt;-</span> <span class="dv">100</span></span>
+<span id="cb3-12"><a href="#cb3-12"></a>  <span class="cf">if</span>(<span class="fu">is.null</span>(pa<span class="sc">$</span>T)) pa<span class="sc">$</span>T <span class="ot">&lt;-</span> <span class="dv">100</span></span>
+<span id="cb3-13"><a href="#cb3-13"></a>  <span class="cf">if</span>(<span class="fu">is.null</span>(pa<span class="sc">$</span>seed)) pa<span class="sc">$</span>seed <span class="ot">&lt;-</span> <span class="dv">0</span></span>
+<span id="cb3-14"><a href="#cb3-14"></a></span>
+<span id="cb3-15"><a href="#cb3-15"></a>  <span class="do">## drawing the first sample x_1</span></span>
+<span id="cb3-16"><a href="#cb3-16"></a>  <span class="fu">set.seed</span>(pa<span class="sc">$</span>seed)</span>
+<span id="cb3-17"><a href="#cb3-17"></a>  x <span class="ot">&lt;-</span> <span class="fu">rep</span>(<span class="cn">NA</span>, pa<span class="sc">$</span>T)</span>
+<span id="cb3-18"><a href="#cb3-18"></a>  x[<span class="dv">1</span>] <span class="ot">&lt;-</span> <span class="fu">rchisq</span>(<span class="at">n =</span> <span class="dv">1</span>,</span>
+<span id="cb3-19"><a href="#cb3-19"></a>                 <span class="at">df =</span> pa<span class="sc">$</span>Mean)</span>
+<span id="cb3-20"><a href="#cb3-20"></a></span>
+<span id="cb3-21"><a href="#cb3-21"></a>  <span class="do">## making the rest of the time series</span></span>
+<span id="cb3-22"><a href="#cb3-22"></a>  <span class="cf">for</span> (t <span class="cf">in</span> <span class="dv">2</span><span class="sc">:</span>pa<span class="sc">$</span>T){</span>
+<span id="cb3-23"><a href="#cb3-23"></a></span>
+<span id="cb3-24"><a href="#cb3-24"></a>    x[t] <span class="ot">&lt;-</span> pa<span class="sc">$</span>c <span class="sc">+</span> pa<span class="sc">$</span>phi<span class="sc">*</span>x[t<span class="dv">-1</span>] <span class="sc">+</span> <span class="fu">rchisq</span>(<span class="at">n =</span> <span class="dv">1</span>,</span>
+<span id="cb3-25"><a href="#cb3-25"></a>                                          <span class="at">df =</span> pa<span class="sc">$</span>nu)</span>
+<span id="cb3-26"><a href="#cb3-26"></a>  }</span>
+<span id="cb3-27"><a href="#cb3-27"></a></span>
+<span id="cb3-28"><a href="#cb3-28"></a>  <span class="do">## quick output of raw time series without book-keeping variables/parameters</span></span>
+<span id="cb3-29"><a href="#cb3-29"></a>  <span class="cf">if</span>(<span class="sc">!</span><span class="fu">is.null</span>(pa<span class="sc">$</span>only.ts))</span>
+<span id="cb3-30"><a href="#cb3-30"></a>    <span class="cf">if</span>(pa<span class="sc">$</span>only.ts<span class="sc">==</span><span class="cn">TRUE</span>) <span class="fu">return</span>(x)</span>
+<span id="cb3-31"><a href="#cb3-31"></a></span>
+<span id="cb3-32"><a href="#cb3-32"></a>  Empirical.Parameters <span class="ot">=</span> <span class="fu">list</span>(<span class="at">Mean =</span> <span class="fu">mean</span>(x),</span>
+<span id="cb3-33"><a href="#cb3-33"></a>                              <span class="at">Variance =</span> <span class="fu">var</span>(x),</span>
+<span id="cb3-34"><a href="#cb3-34"></a>                              <span class="at">Skewness =</span> moments<span class="sc">::</span><span class="fu">skewness</span>(x),</span>
+<span id="cb3-35"><a href="#cb3-35"></a>                              <span class="at">AR =</span> <span class="fu">acf</span>(x, <span class="at">lag.max =</span> <span class="dv">1</span>, <span class="at">plot =</span> <span class="cn">FALSE</span>)<span class="sc">$</span>acf[<span class="dv">2</span>]</span>
+<span id="cb3-36"><a href="#cb3-36"></a>  )</span>
+<span id="cb3-37"><a href="#cb3-37"></a></span>
+<span id="cb3-38"><a href="#cb3-38"></a>  <span class="do">## making a LaTeX-ready list description of the model</span></span>
+<span id="cb3-39"><a href="#cb3-39"></a>  Model.Description <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">"$</span><span class="sc">\\</span><span class="st">chi^2AR(1):"</span>, <span class="co"># \\; with",</span></span>
+<span id="cb3-40"><a href="#cb3-40"></a>                              <span class="st">"</span><span class="sc">\\</span><span class="st">; </span><span class="sc">\\</span><span class="st">mu = "</span>,</span>
+<span id="cb3-41"><a href="#cb3-41"></a>                              <span class="fu">round</span>(pa<span class="sc">$</span>Mean,<span class="dv">2</span>),</span>
+<span id="cb3-42"><a href="#cb3-42"></a>                              <span class="st">"("</span>,</span>
+<span id="cb3-43"><a href="#cb3-43"></a>                              <span class="fu">round</span>(Empirical.Parameters<span class="sc">$</span>Mean,<span class="dv">2</span>),</span>
+<span id="cb3-44"><a href="#cb3-44"></a>                              <span class="st">")"</span>,</span>
+<span id="cb3-45"><a href="#cb3-45"></a>                              <span class="st">",</span><span class="sc">\\</span><span class="st">; </span><span class="sc">\\</span><span class="st">gamma = "</span>,</span>
+<span id="cb3-46"><a href="#cb3-46"></a>                              <span class="fu">round</span>(pa<span class="sc">$</span>Skewness,<span class="dv">2</span>),</span>
+<span id="cb3-47"><a href="#cb3-47"></a>                              <span class="st">"("</span>,</span>
+<span id="cb3-48"><a href="#cb3-48"></a>                              <span class="fu">round</span>(Empirical.Parameters<span class="sc">$</span>Skewness,<span class="dv">2</span>),</span>
+<span id="cb3-49"><a href="#cb3-49"></a>                              <span class="st">")"</span>,</span>
+<span id="cb3-50"><a href="#cb3-50"></a>                              <span class="st">",</span><span class="sc">\\</span><span class="st">; </span><span class="sc">\\</span><span class="st">phi = "</span>,</span>
+<span id="cb3-51"><a href="#cb3-51"></a>                              <span class="fu">round</span>(pa<span class="sc">$</span>phi,<span class="dv">2</span>),</span>
+<span id="cb3-52"><a href="#cb3-52"></a>                              <span class="st">"("</span>,</span>
+<span id="cb3-53"><a href="#cb3-53"></a>                              <span class="fu">round</span>(Empirical.Parameters<span class="sc">$</span>AR,<span class="dv">2</span>),</span>
+<span id="cb3-54"><a href="#cb3-54"></a>                              <span class="st">")"</span>,</span>
+<span id="cb3-55"><a href="#cb3-55"></a>                              <span class="st">",</span><span class="sc">\\</span><span class="st">; </span><span class="sc">\\</span><span class="st">nu = "</span>,</span>
+<span id="cb3-56"><a href="#cb3-56"></a>                              <span class="fu">round</span>(pa<span class="sc">$</span>nu,<span class="dv">2</span>),</span>
+<span id="cb3-57"><a href="#cb3-57"></a>                              <span class="st">",</span><span class="sc">\\</span><span class="st">; c = "</span>,</span>
+<span id="cb3-58"><a href="#cb3-58"></a>                              <span class="fu">round</span>(pa<span class="sc">$</span>c,<span class="dv">3</span>),</span>
+<span id="cb3-59"><a href="#cb3-59"></a>                              <span class="st">",</span><span class="sc">\\</span><span class="st">; T = "</span>,</span>
+<span id="cb3-60"><a href="#cb3-60"></a>                              pa<span class="sc">$</span>T,</span>
+<span id="cb3-61"><a href="#cb3-61"></a>                              <span class="st">"$"</span>)</span>
+<span id="cb3-62"><a href="#cb3-62"></a></span>
+<span id="cb3-63"><a href="#cb3-63"></a>  Model.Description.Short <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">"$c = "</span>,</span>
+<span id="cb3-64"><a href="#cb3-64"></a>                                    <span class="fu">round</span>(pa<span class="sc">$</span>c,<span class="dv">2</span>),</span>
+<span id="cb3-65"><a href="#cb3-65"></a>                                    <span class="st">",</span><span class="sc">\\</span><span class="st">; </span><span class="sc">\\</span><span class="st">nu = "</span>,</span>
+<span id="cb3-66"><a href="#cb3-66"></a>                                    <span class="fu">round</span>(pa<span class="sc">$</span>nu, <span class="dv">2</span>),</span>
+<span id="cb3-67"><a href="#cb3-67"></a>                                    <span class="st">",</span><span class="sc">\\</span><span class="st">; </span><span class="sc">\\</span><span class="st">phi = "</span>,</span>
+<span id="cb3-68"><a href="#cb3-68"></a>                                    <span class="fu">round</span>(pa<span class="sc">$</span>phi, <span class="dv">2</span>),</span>
+<span id="cb3-69"><a href="#cb3-69"></a>                                    <span class="st">"</span><span class="sc">\\</span><span class="st">; </span><span class="sc">\\</span><span class="st">rightarrow"</span>,</span>
+<span id="cb3-70"><a href="#cb3-70"></a>                                    <span class="st">"</span><span class="sc">\\</span><span class="st">; </span><span class="sc">\\</span><span class="st">mu = "</span>,</span>
+<span id="cb3-71"><a href="#cb3-71"></a>                                    <span class="fu">round</span>(Empirical.Parameters<span class="sc">$</span>Mean, <span class="dv">2</span>),</span>
+<span id="cb3-72"><a href="#cb3-72"></a>                                    <span class="st">",</span><span class="sc">\\</span><span class="st">; </span><span class="sc">\\</span><span class="st">sigma^2 = "</span>,</span>
+<span id="cb3-73"><a href="#cb3-73"></a>                                    <span class="fu">round</span>(Empirical.Parameters<span class="sc">$</span>Variance,<span class="dv">2</span>),</span>
+<span id="cb3-74"><a href="#cb3-74"></a>                                    <span class="st">",</span><span class="sc">\\</span><span class="st">; </span><span class="sc">\\</span><span class="st">gamma = "</span>,</span>
+<span id="cb3-75"><a href="#cb3-75"></a>                                    <span class="fu">round</span>(Empirical.Parameters<span class="sc">$</span>Skewness,<span class="dv">2</span>),</span>
+<span id="cb3-76"><a href="#cb3-76"></a>                                    <span class="st">"$"</span>)</span>
+<span id="cb3-77"><a href="#cb3-77"></a>  <span class="do">## making the output object</span></span>
+<span id="cb3-78"><a href="#cb3-78"></a>  output <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="at">x =</span> x,</span>
+<span id="cb3-79"><a href="#cb3-79"></a>                 <span class="at">Model.Description =</span> Model.Description,</span>
+<span id="cb3-80"><a href="#cb3-80"></a>                 <span class="at">Model.Description.Short =</span> Model.Description.Short,</span>
+<span id="cb3-81"><a href="#cb3-81"></a>                 <span class="at">Model.Parameters =</span> pa,</span>
+<span id="cb3-82"><a href="#cb3-82"></a>                 <span class="at">Empirical.Parameters =</span> Empirical.Parameters)</span>
+<span id="cb3-83"><a href="#cb3-83"></a></span>
+<span id="cb3-84"><a href="#cb3-84"></a>  <span class="fu">return</span>(output)</span>
+<span id="cb3-85"><a href="#cb3-85"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+</div>
+<div id="tabset-1-3" class="tab-pane" role="tabpanel" aria-labelledby="tabset-1-3-tab">
+<p>The canonical parameters of the BinAR(1) model (which we referred to as <code>BinAR(1)</code> in the simulation) are the survival probability <span class="math inline">\(\alpha\)</span> (default: <code>alpha = 0.5</code>) and the revival probability <span class="math inline">\(\beta\)</span> (default: <code>beta = 0.4</code>). By default, the maximum value on scale <span class="math inline">\(k\)</span> was set to <code>k = 10</code>.</p>
+<div class="cell">
+<details>
+<summary>Show the code</summary>
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1"></a>dgm_binar <span class="ot">&lt;-</span> <span class="cf">function</span>(...){</span>
+<span id="cb4-2"><a href="#cb4-2"></a></span>
+<span id="cb4-3"><a href="#cb4-3"></a>  pa <span class="ot">&lt;-</span> <span class="fu">list</span>(...)</span>
+<span id="cb4-4"><a href="#cb4-4"></a></span>
+<span id="cb4-5"><a href="#cb4-5"></a>  <span class="cf">if</span>(<span class="fu">is.list</span>(pa<span class="sc">$</span>pa)) pa <span class="ot">&lt;-</span> pa<span class="sc">$</span>pa</span>
+<span id="cb4-6"><a href="#cb4-6"></a></span>
+<span id="cb4-7"><a href="#cb4-7"></a>  <span class="do">## setting default seed if not given</span></span>
+<span id="cb4-8"><a href="#cb4-8"></a>  <span class="cf">if</span>(<span class="fu">is.null</span>(pa<span class="sc">$</span>alpha)) pa<span class="sc">$</span>alpha <span class="ot">&lt;-</span> <span class="fl">0.5</span></span>
+<span id="cb4-9"><a href="#cb4-9"></a>  <span class="cf">if</span>(<span class="fu">is.null</span>(pa<span class="sc">$</span>beta)) pa<span class="sc">$</span>beta <span class="ot">&lt;-</span> <span class="fl">0.4</span></span>
+<span id="cb4-10"><a href="#cb4-10"></a>  <span class="cf">if</span>(<span class="fu">is.null</span>(pa<span class="sc">$</span>k)) pa<span class="sc">$</span>k <span class="ot">&lt;-</span> <span class="dv">10</span></span>
+<span id="cb4-11"><a href="#cb4-11"></a>  <span class="cf">if</span>(<span class="fu">is.null</span>(pa<span class="sc">$</span>T)) pa<span class="sc">$</span>T <span class="ot">&lt;-</span> <span class="dv">100</span></span>
+<span id="cb4-12"><a href="#cb4-12"></a>  <span class="cf">if</span>(<span class="fu">is.null</span>(pa<span class="sc">$</span>seed)) pa<span class="sc">$</span>seed <span class="ot">&lt;-</span> <span class="dv">0</span></span>
+<span id="cb4-13"><a href="#cb4-13"></a></span>
+<span id="cb4-14"><a href="#cb4-14"></a>  <span class="do">## making other parameters</span></span>
+<span id="cb4-15"><a href="#cb4-15"></a>  pa<span class="sc">$</span>rho <span class="ot">&lt;-</span> pa<span class="sc">$</span>alpha <span class="sc">-</span> pa<span class="sc">$</span>beta</span>
+<span id="cb4-16"><a href="#cb4-16"></a>  pa<span class="sc">$</span>theta <span class="ot">&lt;-</span> pa<span class="sc">$</span>beta<span class="sc">/</span>(<span class="dv">1</span><span class="sc">-</span>pa<span class="sc">$</span>rho)</span>
+<span id="cb4-17"><a href="#cb4-17"></a></span>
+<span id="cb4-18"><a href="#cb4-18"></a></span>
+<span id="cb4-19"><a href="#cb4-19"></a>  <span class="do">## drawing the first sample x_1</span></span>
+<span id="cb4-20"><a href="#cb4-20"></a>  <span class="fu">set.seed</span>(pa<span class="sc">$</span>seed)</span>
+<span id="cb4-21"><a href="#cb4-21"></a>  x <span class="ot">&lt;-</span> <span class="fu">rep</span>(<span class="cn">NA</span>, pa<span class="sc">$</span>T)</span>
+<span id="cb4-22"><a href="#cb4-22"></a>  x[<span class="dv">1</span>] <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(<span class="at">n =</span> <span class="dv">1</span>,</span>
+<span id="cb4-23"><a href="#cb4-23"></a>                 <span class="at">size =</span> pa<span class="sc">$</span>k ,</span>
+<span id="cb4-24"><a href="#cb4-24"></a>                 <span class="at">prob =</span> pa<span class="sc">$</span>theta)</span>
+<span id="cb4-25"><a href="#cb4-25"></a></span>
+<span id="cb4-26"><a href="#cb4-26"></a>  <span class="do">## making the rest of the time series</span></span>
+<span id="cb4-27"><a href="#cb4-27"></a>  <span class="cf">for</span> (t <span class="cf">in</span> <span class="dv">2</span><span class="sc">:</span>pa<span class="sc">$</span>T){</span>
+<span id="cb4-28"><a href="#cb4-28"></a>    S_t <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(<span class="at">n =</span> <span class="dv">1</span>,</span>
+<span id="cb4-29"><a href="#cb4-29"></a>                  <span class="at">size =</span> x[t<span class="dv">-1</span>],</span>
+<span id="cb4-30"><a href="#cb4-30"></a>                  <span class="at">prob =</span> pa<span class="sc">$</span>alpha)</span>
+<span id="cb4-31"><a href="#cb4-31"></a>    R_t <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(<span class="at">n =</span> <span class="dv">1</span>,</span>
+<span id="cb4-32"><a href="#cb4-32"></a>                  <span class="at">size =</span> pa<span class="sc">$</span>k <span class="sc">-</span> x[t<span class="dv">-1</span>],</span>
+<span id="cb4-33"><a href="#cb4-33"></a>                  <span class="at">prob =</span> pa<span class="sc">$</span>beta)</span>
+<span id="cb4-34"><a href="#cb4-34"></a>    x[t] <span class="ot">&lt;-</span> S_t <span class="sc">+</span> R_t</span>
+<span id="cb4-35"><a href="#cb4-35"></a>  }</span>
+<span id="cb4-36"><a href="#cb4-36"></a></span>
+<span id="cb4-37"><a href="#cb4-37"></a>  <span class="do">## quick output of raw time series without book-keeping variables/parameters</span></span>
+<span id="cb4-38"><a href="#cb4-38"></a>  <span class="cf">if</span>(<span class="sc">!</span><span class="fu">is.null</span>(pa<span class="sc">$</span>only.ts))</span>
+<span id="cb4-39"><a href="#cb4-39"></a>    <span class="cf">if</span>(pa<span class="sc">$</span>only.ts<span class="sc">==</span><span class="cn">TRUE</span>) <span class="fu">return</span>(x)</span>
+<span id="cb4-40"><a href="#cb4-40"></a></span>
+<span id="cb4-41"><a href="#cb4-41"></a>  Empirical.Parameters <span class="ot">=</span> <span class="fu">list</span>(<span class="at">Mean =</span> <span class="fu">mean</span>(x),</span>
+<span id="cb4-42"><a href="#cb4-42"></a>                              <span class="at">Variance =</span> <span class="fu">var</span>(x),</span>
+<span id="cb4-43"><a href="#cb4-43"></a>                              <span class="at">Skewness =</span> moments<span class="sc">::</span><span class="fu">skewness</span>(x),</span>
+<span id="cb4-44"><a href="#cb4-44"></a>                              <span class="at">AR =</span> <span class="fu">acf</span>(x, <span class="at">lag.max =</span> <span class="dv">1</span>, <span class="at">plot =</span> <span class="cn">FALSE</span>)<span class="sc">$</span>acf[<span class="dv">2</span>]</span>
+<span id="cb4-45"><a href="#cb4-45"></a>  )</span>
+<span id="cb4-46"><a href="#cb4-46"></a></span>
+<span id="cb4-47"><a href="#cb4-47"></a>  <span class="do">## making a LaTeX-ready list description of the model</span></span>
+<span id="cb4-48"><a href="#cb4-48"></a>  Model.Description <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">"$BinAR(1):"</span>,</span>
+<span id="cb4-49"><a href="#cb4-49"></a>                              <span class="st">"</span><span class="sc">\\</span><span class="st">; </span><span class="sc">\\</span><span class="st">mu = "</span>,</span>
+<span id="cb4-50"><a href="#cb4-50"></a>                              <span class="fu">round</span>(pa<span class="sc">$</span>Mean,<span class="dv">2</span>),</span>
+<span id="cb4-51"><a href="#cb4-51"></a>                              <span class="st">"("</span>,</span>
+<span id="cb4-52"><a href="#cb4-52"></a>                              <span class="fu">round</span>(Empirical.Parameters<span class="sc">$</span>Mean,<span class="dv">2</span>),</span>
+<span id="cb4-53"><a href="#cb4-53"></a>                              <span class="st">")"</span>,</span>
+<span id="cb4-54"><a href="#cb4-54"></a>                              <span class="st">",</span><span class="sc">\\</span><span class="st">; </span><span class="sc">\\</span><span class="st">gamma = "</span>,</span>
+<span id="cb4-55"><a href="#cb4-55"></a>                              <span class="fu">round</span>(pa<span class="sc">$</span>Skewness,<span class="dv">2</span>),</span>
+<span id="cb4-56"><a href="#cb4-56"></a>                              <span class="st">"("</span>,</span>
+<span id="cb4-57"><a href="#cb4-57"></a>                              <span class="fu">round</span>(Empirical.Parameters<span class="sc">$</span>Skewness,<span class="dv">2</span>),</span>
+<span id="cb4-58"><a href="#cb4-58"></a>                              <span class="st">")"</span>,</span>
+<span id="cb4-59"><a href="#cb4-59"></a>                              <span class="st">",</span><span class="sc">\\</span><span class="st">; </span><span class="sc">\\</span><span class="st">rho = "</span>,</span>
+<span id="cb4-60"><a href="#cb4-60"></a>                              <span class="fu">round</span>(pa<span class="sc">$</span>rho,<span class="dv">3</span>),</span>
+<span id="cb4-61"><a href="#cb4-61"></a>                              <span class="st">"("</span>,</span>
+<span id="cb4-62"><a href="#cb4-62"></a>                              <span class="fu">round</span>(Empirical.Parameters<span class="sc">$</span>AR,<span class="dv">2</span>),</span>
+<span id="cb4-63"><a href="#cb4-63"></a>                              <span class="st">")"</span>,</span>
+<span id="cb4-64"><a href="#cb4-64"></a>                              <span class="st">",</span><span class="sc">\\</span><span class="st">; </span><span class="sc">\\</span><span class="st">alpha = "</span>,</span>
+<span id="cb4-65"><a href="#cb4-65"></a>                              <span class="fu">round</span>(pa<span class="sc">$</span>alpha,<span class="dv">2</span>),</span>
+<span id="cb4-66"><a href="#cb4-66"></a>                              <span class="st">",</span><span class="sc">\\</span><span class="st">; </span><span class="sc">\\</span><span class="st">beta = "</span>,</span>
+<span id="cb4-67"><a href="#cb4-67"></a>                              <span class="fu">round</span>(pa<span class="sc">$</span>beta,<span class="dv">2</span>),</span>
+<span id="cb4-68"><a href="#cb4-68"></a>                              <span class="st">",</span><span class="sc">\\</span><span class="st">; </span><span class="sc">\\</span><span class="st">theta = "</span>,</span>
+<span id="cb4-69"><a href="#cb4-69"></a>                              <span class="fu">round</span>(pa<span class="sc">$</span>theta,<span class="dv">3</span>),</span>
+<span id="cb4-70"><a href="#cb4-70"></a>                              <span class="st">",</span><span class="sc">\\</span><span class="st">; T = "</span>,</span>
+<span id="cb4-71"><a href="#cb4-71"></a>                              pa<span class="sc">$</span>T,</span>
+<span id="cb4-72"><a href="#cb4-72"></a>                              <span class="st">"$"</span>)</span>
+<span id="cb4-73"><a href="#cb4-73"></a></span>
+<span id="cb4-74"><a href="#cb4-74"></a>  Model.Description.Short <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">"$k ="</span>,</span>
+<span id="cb4-75"><a href="#cb4-75"></a>                                    <span class="fu">round</span>(pa<span class="sc">$</span>k,<span class="dv">2</span>),</span>
+<span id="cb4-76"><a href="#cb4-76"></a>                                    <span class="st">",</span><span class="sc">\\</span><span class="st">; </span><span class="sc">\\</span><span class="st">alpha = "</span>,</span>
+<span id="cb4-77"><a href="#cb4-77"></a>                                    <span class="fu">round</span>(pa<span class="sc">$</span>alpha,<span class="dv">2</span>),</span>
+<span id="cb4-78"><a href="#cb4-78"></a>                                    <span class="st">",</span><span class="sc">\\</span><span class="st">; </span><span class="sc">\\</span><span class="st">beta = "</span>,</span>
+<span id="cb4-79"><a href="#cb4-79"></a>                                    <span class="fu">round</span>(pa<span class="sc">$</span>beta,<span class="dv">2</span>),</span>
+<span id="cb4-80"><a href="#cb4-80"></a>                                    <span class="st">"</span><span class="sc">\\</span><span class="st">; </span><span class="sc">\\</span><span class="st">rightarrow"</span>,</span>
+<span id="cb4-81"><a href="#cb4-81"></a>                                    <span class="st">"</span><span class="sc">\\</span><span class="st">; </span><span class="sc">\\</span><span class="st">rho = "</span>,</span>
+<span id="cb4-82"><a href="#cb4-82"></a>                                    <span class="fu">round</span>(Empirical.Parameters<span class="sc">$</span>AR, <span class="dv">2</span>),</span>
+<span id="cb4-83"><a href="#cb4-83"></a>                                    <span class="st">",</span><span class="sc">\\</span><span class="st">; </span><span class="sc">\\</span><span class="st">mu = "</span>,</span>
+<span id="cb4-84"><a href="#cb4-84"></a>                                    <span class="fu">round</span>(Empirical.Parameters<span class="sc">$</span>Mean, <span class="dv">2</span>),</span>
+<span id="cb4-85"><a href="#cb4-85"></a>                                    <span class="st">",</span><span class="sc">\\</span><span class="st">; </span><span class="sc">\\</span><span class="st">sigma^2 = "</span>,</span>
+<span id="cb4-86"><a href="#cb4-86"></a>                                    <span class="fu">round</span>(Empirical.Parameters<span class="sc">$</span>Variance,<span class="dv">2</span>),</span>
+<span id="cb4-87"><a href="#cb4-87"></a>                                    <span class="st">",</span><span class="sc">\\</span><span class="st">; </span><span class="sc">\\</span><span class="st">gamma = "</span>,</span>
+<span id="cb4-88"><a href="#cb4-88"></a>                                    <span class="fu">round</span>(Empirical.Parameters<span class="sc">$</span>Skewness,<span class="dv">2</span>),</span>
+<span id="cb4-89"><a href="#cb4-89"></a>                                    <span class="st">"$"</span>)</span>
+<span id="cb4-90"><a href="#cb4-90"></a>  <span class="do">## making the output object</span></span>
+<span id="cb4-91"><a href="#cb4-91"></a>  output <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="at">x =</span> x,</span>
+<span id="cb4-92"><a href="#cb4-92"></a>                 <span class="at">Model.Description =</span> Model.Description,</span>
+<span id="cb4-93"><a href="#cb4-93"></a>                 <span class="at">Model.Description.Short =</span> Model.Description.Short,</span>
+<span id="cb4-94"><a href="#cb4-94"></a>                 <span class="at">Model.Parameters =</span> pa,</span>
+<span id="cb4-95"><a href="#cb4-95"></a>                 <span class="at">Empirical.Parameters =</span> Empirical.Parameters)</span>
+<span id="cb4-96"><a href="#cb4-96"></a></span>
+<span id="cb4-97"><a href="#cb4-97"></a>  <span class="fu">return</span>(output)</span>
+<span id="cb4-98"><a href="#cb4-98"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+</div>
+<div id="tabset-1-4" class="tab-pane" role="tabpanel" aria-labelledby="tabset-1-4-tab">
+<p>The canonical parameters of the PoDAR(1) model (which we referred to as <code>PoDAR(1)</code> in the simulation) are the persistence probability <span class="math inline">\(\tau\)</span> (default: <code>tau = 0.7</code>) and the average rate <span class="math inline">\(\lambda\)</span> (default: <code>lambda = 0.5</code>).</p>
+<div class="cell">
+<details>
+<summary>Show the code</summary>
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1"></a>dgm_podar <span class="ot">&lt;-</span> <span class="cf">function</span>(...){</span>
+<span id="cb5-2"><a href="#cb5-2"></a></span>
+<span id="cb5-3"><a href="#cb5-3"></a>  pa <span class="ot">&lt;-</span> <span class="fu">list</span>(...)</span>
+<span id="cb5-4"><a href="#cb5-4"></a></span>
+<span id="cb5-5"><a href="#cb5-5"></a>  <span class="cf">if</span>(<span class="fu">is.list</span>(pa<span class="sc">$</span>pa)) pa <span class="ot">&lt;-</span> pa<span class="sc">$</span>pa</span>
+<span id="cb5-6"><a href="#cb5-6"></a></span>
+<span id="cb5-7"><a href="#cb5-7"></a>  <span class="do">## setting default seed if not given</span></span>
+<span id="cb5-8"><a href="#cb5-8"></a>  <span class="cf">if</span>(<span class="fu">is.null</span>(pa<span class="sc">$</span>tau)) pa<span class="sc">$</span>tau <span class="ot">&lt;-</span> <span class="fl">0.7</span></span>
+<span id="cb5-9"><a href="#cb5-9"></a>  <span class="cf">if</span>(<span class="fu">is.null</span>(pa<span class="sc">$</span>lambda)) pa<span class="sc">$</span>lambda <span class="ot">&lt;-</span> <span class="fl">0.5</span></span>
+<span id="cb5-10"><a href="#cb5-10"></a>  <span class="cf">if</span>(<span class="fu">is.null</span>(pa<span class="sc">$</span>k)) pa<span class="sc">$</span>k <span class="ot">&lt;-</span> <span class="dv">6</span></span>
+<span id="cb5-11"><a href="#cb5-11"></a>  <span class="cf">if</span>(<span class="fu">is.null</span>(pa<span class="sc">$</span>T)) pa<span class="sc">$</span>T <span class="ot">&lt;-</span> <span class="dv">100</span></span>
+<span id="cb5-12"><a href="#cb5-12"></a>  <span class="cf">if</span>(<span class="fu">is.null</span>(pa<span class="sc">$</span>seed)) pa<span class="sc">$</span>seed <span class="ot">&lt;-</span> <span class="dv">0</span></span>
+<span id="cb5-13"><a href="#cb5-13"></a></span>
+<span id="cb5-14"><a href="#cb5-14"></a></span>
+<span id="cb5-15"><a href="#cb5-15"></a>  <span class="do">## drawing the first sample x_1</span></span>
+<span id="cb5-16"><a href="#cb5-16"></a>  <span class="fu">set.seed</span>(pa<span class="sc">$</span>seed)</span>
+<span id="cb5-17"><a href="#cb5-17"></a>  x <span class="ot">&lt;-</span> <span class="fu">rep</span>(<span class="cn">NA</span>, pa<span class="sc">$</span>T)</span>
+<span id="cb5-18"><a href="#cb5-18"></a>  x[<span class="dv">1</span>] <span class="ot">&lt;-</span> <span class="fu">rpois</span>(<span class="at">n =</span> <span class="dv">1</span>,</span>
+<span id="cb5-19"><a href="#cb5-19"></a>                <span class="at">lambda =</span> pa<span class="sc">$</span>lambda)</span>
+<span id="cb5-20"><a href="#cb5-20"></a></span>
+<span id="cb5-21"><a href="#cb5-21"></a>  <span class="do">## making the rest of the time series</span></span>
+<span id="cb5-22"><a href="#cb5-22"></a>  <span class="cf">for</span> (t <span class="cf">in</span> <span class="dv">2</span><span class="sc">:</span>pa<span class="sc">$</span>T){</span>
+<span id="cb5-23"><a href="#cb5-23"></a>    V_t <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(<span class="at">n =</span> <span class="dv">1</span>,</span>
+<span id="cb5-24"><a href="#cb5-24"></a>                  <span class="at">size =</span> <span class="dv">1</span>,</span>
+<span id="cb5-25"><a href="#cb5-25"></a>                  <span class="at">prob =</span> pa<span class="sc">$</span>tau)</span>
+<span id="cb5-26"><a href="#cb5-26"></a>    Z_t <span class="ot">&lt;-</span> <span class="fu">rpois</span>(<span class="at">n =</span> <span class="dv">1</span>,</span>
+<span id="cb5-27"><a href="#cb5-27"></a>                 <span class="at">lambda =</span> pa<span class="sc">$</span>lambda)</span>
+<span id="cb5-28"><a href="#cb5-28"></a>    x[t] <span class="ot">&lt;-</span> V_t<span class="sc">*</span>x[t<span class="dv">-1</span>] <span class="sc">+</span> (<span class="dv">1</span><span class="sc">-</span>V_t)<span class="sc">*</span>Z_t</span>
+<span id="cb5-29"><a href="#cb5-29"></a>  }</span>
+<span id="cb5-30"><a href="#cb5-30"></a></span>
+<span id="cb5-31"><a href="#cb5-31"></a>  <span class="do">## quick output of raw time series without book-keeping variables/parameters</span></span>
+<span id="cb5-32"><a href="#cb5-32"></a>  <span class="cf">if</span>(<span class="sc">!</span><span class="fu">is.null</span>(pa<span class="sc">$</span>only.ts))</span>
+<span id="cb5-33"><a href="#cb5-33"></a>    <span class="cf">if</span>(pa<span class="sc">$</span>only.ts<span class="sc">==</span><span class="cn">TRUE</span>) <span class="fu">return</span>(x)</span>
+<span id="cb5-34"><a href="#cb5-34"></a></span>
+<span id="cb5-35"><a href="#cb5-35"></a>  Empirical.Parameters <span class="ot">=</span> <span class="fu">list</span>(<span class="at">Mean =</span> <span class="fu">mean</span>(x),</span>
+<span id="cb5-36"><a href="#cb5-36"></a>                              <span class="at">Variance =</span> <span class="fu">var</span>(x),</span>
+<span id="cb5-37"><a href="#cb5-37"></a>                              <span class="at">Skewness =</span> moments<span class="sc">::</span><span class="fu">skewness</span>(x),</span>
+<span id="cb5-38"><a href="#cb5-38"></a>                              <span class="at">AR =</span> <span class="fu">acf</span>(x, <span class="at">lag.max =</span> <span class="dv">1</span>, <span class="at">plot =</span> <span class="cn">FALSE</span>)<span class="sc">$</span>acf[<span class="dv">2</span>]</span>
+<span id="cb5-39"><a href="#cb5-39"></a>  )</span>
+<span id="cb5-40"><a href="#cb5-40"></a></span>
+<span id="cb5-41"><a href="#cb5-41"></a>  <span class="do">## making a LaTeX-ready list description of the model</span></span>
+<span id="cb5-42"><a href="#cb5-42"></a>  Model.Description <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">"$PoDAR(1):"</span>,</span>
+<span id="cb5-43"><a href="#cb5-43"></a>                              <span class="st">"</span><span class="sc">\\</span><span class="st">; </span><span class="sc">\\</span><span class="st">mu = "</span>,</span>
+<span id="cb5-44"><a href="#cb5-44"></a>                              <span class="fu">round</span>(pa<span class="sc">$</span>Mean,<span class="dv">2</span>),</span>
+<span id="cb5-45"><a href="#cb5-45"></a>                              <span class="st">"("</span>,</span>
+<span id="cb5-46"><a href="#cb5-46"></a>                              <span class="fu">round</span>(Empirical.Parameters<span class="sc">$</span>Mean,<span class="dv">2</span>),</span>
+<span id="cb5-47"><a href="#cb5-47"></a>                              <span class="st">")"</span>,</span>
+<span id="cb5-48"><a href="#cb5-48"></a>                              <span class="st">",</span><span class="sc">\\</span><span class="st">; </span><span class="sc">\\</span><span class="st">gamma = "</span>,</span>
+<span id="cb5-49"><a href="#cb5-49"></a>                              <span class="fu">round</span>(pa<span class="sc">$</span>Skewness,<span class="dv">2</span>),</span>
+<span id="cb5-50"><a href="#cb5-50"></a>                              <span class="st">"("</span>,</span>
+<span id="cb5-51"><a href="#cb5-51"></a>                              <span class="fu">round</span>(Empirical.Parameters<span class="sc">$</span>Skewness,<span class="dv">2</span>),</span>
+<span id="cb5-52"><a href="#cb5-52"></a>                              <span class="st">")"</span>,</span>
+<span id="cb5-53"><a href="#cb5-53"></a>                              <span class="st">"</span><span class="sc">\\</span><span class="st">; </span><span class="sc">\\</span><span class="st">tau = "</span>,</span>
+<span id="cb5-54"><a href="#cb5-54"></a>                              <span class="fu">round</span>(pa<span class="sc">$</span>tau,<span class="dv">3</span>),</span>
+<span id="cb5-55"><a href="#cb5-55"></a>                              <span class="st">"("</span>,</span>
+<span id="cb5-56"><a href="#cb5-56"></a>                              <span class="fu">round</span>(Empirical.Parameters<span class="sc">$</span>AR,<span class="dv">2</span>),</span>
+<span id="cb5-57"><a href="#cb5-57"></a>                              <span class="st">")"</span>,</span>
+<span id="cb5-58"><a href="#cb5-58"></a>                              <span class="st">",</span><span class="sc">\\</span><span class="st">; </span><span class="sc">\\</span><span class="st">lambda = "</span>,</span>
+<span id="cb5-59"><a href="#cb5-59"></a>                              <span class="fu">round</span>(pa<span class="sc">$</span>lambda,<span class="dv">3</span>),</span>
+<span id="cb5-60"><a href="#cb5-60"></a>                              <span class="st">",</span><span class="sc">\\</span><span class="st">; T = "</span>,</span>
+<span id="cb5-61"><a href="#cb5-61"></a>                              pa<span class="sc">$</span>T,</span>
+<span id="cb5-62"><a href="#cb5-62"></a>                              <span class="st">"$"</span>)</span>
+<span id="cb5-63"><a href="#cb5-63"></a></span>
+<span id="cb5-64"><a href="#cb5-64"></a></span>
+<span id="cb5-65"><a href="#cb5-65"></a>  Model.Description.Short <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">"$</span><span class="sc">\\</span><span class="st">lambda = "</span>,</span>
+<span id="cb5-66"><a href="#cb5-66"></a>                                    <span class="fu">round</span>(pa<span class="sc">$</span>lambda,<span class="dv">3</span>),</span>
+<span id="cb5-67"><a href="#cb5-67"></a>                                    <span class="st">",</span><span class="sc">\\</span><span class="st">; </span><span class="sc">\\</span><span class="st">tau = "</span>,</span>
+<span id="cb5-68"><a href="#cb5-68"></a>                                    <span class="fu">round</span>(pa<span class="sc">$</span>tau, <span class="dv">2</span>),</span>
+<span id="cb5-69"><a href="#cb5-69"></a>                                    <span class="st">"</span><span class="sc">\\</span><span class="st">; </span><span class="sc">\\</span><span class="st">rightarrow"</span>,</span>
+<span id="cb5-70"><a href="#cb5-70"></a>                                    <span class="st">"</span><span class="sc">\\</span><span class="st">; </span><span class="sc">\\</span><span class="st">rho = "</span>,</span>
+<span id="cb5-71"><a href="#cb5-71"></a>                                    <span class="fu">round</span>(Empirical.Parameters<span class="sc">$</span>AR, <span class="dv">2</span>),</span>
+<span id="cb5-72"><a href="#cb5-72"></a>                                    <span class="st">",</span><span class="sc">\\</span><span class="st">; </span><span class="sc">\\</span><span class="st">mu = "</span>,</span>
+<span id="cb5-73"><a href="#cb5-73"></a>                                    <span class="fu">round</span>(Empirical.Parameters<span class="sc">$</span>Mean, <span class="dv">2</span>),</span>
+<span id="cb5-74"><a href="#cb5-74"></a>                                    <span class="st">",</span><span class="sc">\\</span><span class="st">; </span><span class="sc">\\</span><span class="st">sigma^2 = "</span>,</span>
+<span id="cb5-75"><a href="#cb5-75"></a>                                    <span class="fu">round</span>(Empirical.Parameters<span class="sc">$</span>Variance,<span class="dv">2</span>),</span>
+<span id="cb5-76"><a href="#cb5-76"></a>                                    <span class="st">",</span><span class="sc">\\</span><span class="st">; </span><span class="sc">\\</span><span class="st">gamma = "</span>,</span>
+<span id="cb5-77"><a href="#cb5-77"></a>                                    <span class="fu">round</span>(Empirical.Parameters<span class="sc">$</span>Skewness,<span class="dv">2</span>),</span>
+<span id="cb5-78"><a href="#cb5-78"></a>                                    <span class="st">"$"</span>)</span>
+<span id="cb5-79"><a href="#cb5-79"></a>  <span class="do">## making the output object</span></span>
+<span id="cb5-80"><a href="#cb5-80"></a>  output <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="at">x =</span> x,</span>
+<span id="cb5-81"><a href="#cb5-81"></a>                 <span class="at">Model.Description =</span> Model.Description,</span>
+<span id="cb5-82"><a href="#cb5-82"></a>                 <span class="at">Model.Description.Short =</span> Model.Description.Short,</span>
+<span id="cb5-83"><a href="#cb5-83"></a>                 <span class="at">Model.Parameters =</span> pa,</span>
+<span id="cb5-84"><a href="#cb5-84"></a>                 <span class="at">Empirical.Parameters =</span> Empirical.Parameters)</span>
+<span id="cb5-85"><a href="#cb5-85"></a></span>
+<span id="cb5-86"><a href="#cb5-86"></a></span>
+<span id="cb5-87"><a href="#cb5-87"></a>  <span class="fu">return</span>(output)</span>
+<span id="cb5-88"><a href="#cb5-88"></a>}</span>
+<span id="cb5-89"><a href="#cb5-89"></a></span>
+<span id="cb5-90"><a href="#cb5-90"></a><span class="co"># General DGM wrappers ----------------------------------------------------</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+</div>
+</div>
+</div>
+</section>
+<section id="general-dgm-wrappers" class="level3">
+<h3 class="anchored" data-anchor-id="general-dgm-wrappers">General DGM wrappers</h3>
+<p>As explained in the paper, each model can be specified using two parameters (and “hyper-parameters” such as <span class="math inline">\(c = 0\)</span> for the <span class="math inline">\(\chi^2\)</span>AR(1) model and <span class="math inline">\(k\)</span> for the BinAR(1) model. Thus, with two relevant parameters for each model, we may calculate the canonical model parameters and generate data.</p>
+<p>To make these calculations easier, we start by writing a function (<code>dgm_parameterizer</code>) that calculates all model-implied parameters of a DGM (specified using the <code>Model</code> argument) based on the provided parameters, and saves them in a list (<code>pa</code>). In case some required parameters are missing, default values are given (e.g., if the autoregressive parameter <span class="math inline">\(\phi\)</span> is not given, it is set to <code>phi = 0.2</code> by default)</p>
+<p>Then we use another list of model specification</p>
+<p>Furthermore, we</p>
+<div class="panel-tabset">
+<ul class="nav nav-tabs" role="tablist"><li class="nav-item" role="presentation"><a class="nav-link active" id="tabset-2-1-tab" data-bs-toggle="tab" data-bs-target="#tabset-2-1" role="tab" aria-controls="tabset-2-1" aria-selected="true" href="">dgm_parameterizer: calculate model-implied parameters</a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-2-2-tab" data-bs-toggle="tab" data-bs-target="#tabset-2-2" role="tab" aria-controls="tabset-2-2" aria-selected="false" href="">dgm_generator: wrapper for DGM functions</a></li></ul>
+<div class="tab-content">
+<div id="tabset-2-1" class="tab-pane active" role="tabpanel" aria-labelledby="tabset-2-1-tab">
+<div class="cell">
+<details>
+<summary>Show the code</summary>
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1"></a>libs_used <span class="ot">&lt;-</span></span>
+<span id="cb6-2"><a href="#cb6-2"></a>  <span class="fu">c</span>(<span class="st">"tidyverse"</span>,</span>
+<span id="cb6-3"><a href="#cb6-3"></a>    <span class="st">"knitr"</span>,</span>
+<span id="cb6-4"><a href="#cb6-4"></a>    <span class="st">"MplusAutomation"</span>,</span>
+<span id="cb6-5"><a href="#cb6-5"></a>    <span class="st">"doSNOW"</span>,</span>
+<span id="cb6-6"><a href="#cb6-6"></a>    <span class="st">"here"</span>,</span>
+<span id="cb6-7"><a href="#cb6-7"></a>    <span class="st">"primes"</span>)</span>
+<span id="cb6-8"><a href="#cb6-8"></a></span>
+<span id="cb6-9"><a href="#cb6-9"></a>libs_needed <span class="ot">&lt;-</span> libs_used[<span class="sc">!</span>libs_used <span class="sc">%in%</span> <span class="fu">installed.packages</span>()]</span>
+<span id="cb6-10"><a href="#cb6-10"></a></span>
+<span id="cb6-11"><a href="#cb6-11"></a><span class="fu">sapply</span>(libs_needed, install.packages, <span class="at">dependencies =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb6-12"><a href="#cb6-12"></a><span class="fu">sapply</span>(libs_used, require, <span class="at">character =</span> <span class="cn">TRUE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+</div>
+<div id="tabset-2-2" class="tab-pane" role="tabpanel" aria-labelledby="tabset-2-2-tab">
+<div class="cell">
+
+</div>
+</div>
+</div>
+</div>
+</section>
+<section id="dataset-generation" class="level3">
+<h3 class="anchored" data-anchor-id="dataset-generation">Dataset generation</h3>
+</section>
+</section>
+</section>
+<section id="sec-pipeline" class="level1">
+<h1>Pipeline</h1>
+<p>We implemented each of these tasks in separate functions that were essentially wrapper functions (with parallel-computing implementation) around the modular components. Using these wrapper functions, each replication of each simulated condition was saved in a separate <code>.rds</code> file. These data files were fed to the analysis wrapper function whose output was saved in separate <code>.rds</code> data files. To collect relevant parameter estimates, another wrapper function was used to read the data files and save the desired parameters in a dataframe, which then used in reporting.</p>
+<p>The outcomes of the components are saved in separate <code>.rds</code> files and indexed by unique, descriptive names, and each replication is given a unique numeric identifier that is also used as the random seed used to generate the dataset within each replication. The file names and address are stored in two dataframes along with model parameters used to generate each dataset, and these dataframes are used when reading and writing data files in other components.</p>
+<section id="wrapper-functions" class="level2">
+<h2 class="anchored" data-anchor-id="wrapper-functions">Wrapper functions</h2>
+</section>
+<section id="pipeline-code" class="level2">
+<h2 class="anchored" data-anchor-id="pipeline-code">Pipeline code</h2>
+</section>
+</section>
+<section id="sec-figures" class="level1">
+<h1>Making the figures</h1>
+<section id="simulation-results" class="level2">
+<h2 class="anchored" data-anchor-id="simulation-results">Simulation results</h2>
+</section>
+<section id="profiles-of-simulated-datasets" class="level2">
+<h2 class="anchored" data-anchor-id="profiles-of-simulated-datasets">Profiles of simulated datasets</h2>
 <!-- -->
 
+
 </section>
 </section>
 
-
-<div id="quarto-appendix" class="default"><section class="footnotes footnotes-end-of-document" role="doc-endnotes"><h2 class="anchored quarto-appendix-heading">Footnotes</h2>
-
-<ol>
-<li id="fn1" role="doc-endnote"><p>Bien, J. (2016). The Simulator: An Engine to Streamline Simulations. <em>ArXiv:1607.00021 [Stat]</em>. <a href="http://arxiv.org/abs/1607.00021" class="uri">http://arxiv.org/abs/1607.00021</a><a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
-</ol>
-</section></div></main>
+</main>
 <!-- /main column -->
 <script id="quarto-html-after-body" type="application/javascript">
 window.document.addEventListener("DOMContentLoaded", function (event) {
@@ -377,97 +837,183 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
   }
 });
 </script><div class="modal fade" id="quarto-embedded-source-code-modal" tabindex="-1" aria-labelledby="quarto-embedded-source-code-modal-label" aria-hidden="true"><div class="modal-dialog modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="quarto-embedded-source-code-modal-label">Source Code</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="">
-<div class="sourceCode" id="cb5" data-shortcodes="false"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="an">title:</span><span class="co"> "Skewness and staging: Does the floor effect induce bias in multilevel AR(1) models?"</span></span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="an">subtitle:</span><span class="co"> "Reproducible codes"</span></span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="an">author:</span><span class="co"> "MH Manuel Haqiqatkhah"</span></span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="an">format:</span></span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="co">  html:</span></span>
-<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="co">    code-fold: true</span></span>
-<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="co">    code-tools: true</span></span>
-<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a><span class="co">    code-summary: "Show the code"</span></span>
-<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a><span class="an">execute:</span></span>
-<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a><span class="co">  enabled: true</span></span>
-<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a><span class="co">  echo: true</span></span>
-<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a><span class="co">  include: true</span></span>
-<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a><span class="co">  warning: false</span></span>
-<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a><span class="co">  error: false</span></span>
-<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a><span class="an">editor:</span><span class="co"> visual</span></span>
-<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
-<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a><span class="fu"># Introduction {#sec-introduction}</span></span>
-<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>This document contains the reproducible code for the manuscript Skewness and staging: Does the floor effect induce bias in multilevel AR(1) models? by M. M. Haqiqatkhah, O. Ryan, and E. L. Hamaker. please cite as:</span>
-<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>...</span>
-<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>In this study, we simulated multilevel data from three data generating mechanisms (DGMs), namely, the AR(1, $\chi^2$AR(1), BinAR(1), and PoDAR(1) models with different parameter sets.\</span>
-<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>For details, see the paper.</span>
-<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a>The simulation was conducted using the following modular pipeline design, inspired by Bien's R package <span class="in">`simulator`</span> (2016)<span class="ot">[^1]</span>, consisting of the following components:</span>
-<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-30"><a href="#cb5-30" aria-hidden="true" tabindex="-1"></a><span class="ot">[^1]: </span>Bien, J. (2016). The Simulator: An Engine to Streamline Simulations. *ArXiv:1607.00021 \[Stat\]*. <span class="ot">&lt;http://arxiv.org/abs/1607.00021&gt;</span></span>
-<span id="cb5-31"><a href="#cb5-31" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-32"><a href="#cb5-32" aria-hidden="true" tabindex="-1"></a><span class="ss">1.  </span>Simulation: generating the datasets</span>
-<span id="cb5-33"><a href="#cb5-33" aria-hidden="true" tabindex="-1"></a><span class="ss">2.  </span>Analysis: modeling the data</span>
-<span id="cb5-34"><a href="#cb5-34" aria-hidden="true" tabindex="-1"></a><span class="ss">3.  </span>Harvesting: collecting the relevant parameter estimates</span>
-<span id="cb5-35"><a href="#cb5-35" aria-hidden="true" tabindex="-1"></a><span class="ss">4.  </span>Reporting: making tables and plots</span>
-<span id="cb5-36"><a href="#cb5-36" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-37"><a href="#cb5-37" aria-hidden="true" tabindex="-1"></a>The outcomes of the components are saved in separate <span class="in">`.rds`</span> files and indexed by unique, descriptive names, and each replication is given a unique numeric identifier that is also used as the random seed used to generate the dataset within each replication. The file names and address are stored in two dataframes along with model parameters used to generate each dataset, and these dataframes are used when reading and writing data files in other components.</span>
-<span id="cb5-38"><a href="#cb5-38" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-39"><a href="#cb5-39" aria-hidden="true" tabindex="-1"></a>In what follows we describe the steps and provide the codes used in this study. In the other tab of this document, we provide the code to generate additional plots shown in the paper. Note that although the codes provided here are cleaned as much as possible, they are not necessarily succinctly written; some functions were written to accommodate the most general functionalities which turned out to be not necessary for the simulation study.</span>
-<span id="cb5-40"><a href="#cb5-40" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-41"><a href="#cb5-41" aria-hidden="true" tabindex="-1"></a>Before we begin, we need to read the scripts to include them in this document. By default, none of the scripts run here (as they are time consuming). To run the scripts of each component, you can change the fololowing variables to <span class="in">`TRUE`</span> and re-render the document:</span>
-<span id="cb5-42"><a href="#cb5-42" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-45"><a href="#cb5-45" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb5-46"><a href="#cb5-46" aria-hidden="true" tabindex="-1"></a><span class="co">#| eval: true</span></span>
-<span id="cb5-47"><a href="#cb5-47" aria-hidden="true" tabindex="-1"></a>runComponent_Simulation <span class="ot">&lt;-</span> <span class="cn">FALSE</span></span>
-<span id="cb5-48"><a href="#cb5-48" aria-hidden="true" tabindex="-1"></a>runComponent_Analysis <span class="ot">&lt;-</span> <span class="cn">FALSE</span></span>
-<span id="cb5-49"><a href="#cb5-49" aria-hidden="true" tabindex="-1"></a>runComponent_Harvesting <span class="ot">&lt;-</span> <span class="cn">FALSE</span></span>
-<span id="cb5-50"><a href="#cb5-50" aria-hidden="true" tabindex="-1"></a>runComponent_Reporting <span class="ot">&lt;-</span> <span class="cn">FALSE</span></span>
-<span id="cb5-51"><a href="#cb5-51" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb5-52"><a href="#cb5-52" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-53"><a href="#cb5-53" aria-hidden="true" tabindex="-1"></a>In case you want to change the scripts (e.g., to run a smaller portion of the simulation, or try other parameters, etc.), you should look up the <span class="in">`kintr`</span> parameters called in each chunk (with <span class="in">`&lt;&lt;some_param&gt;&gt;`</span>) and find the corresponding code (under <span class="in">`## @knitr some_param`</span>) in the <span class="in">`scripts`</span> folder.</span>
-<span id="cb5-54"><a href="#cb5-54" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-57"><a href="#cb5-57" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb5-58"><a href="#cb5-58" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: setup</span></span>
-<span id="cb5-59"><a href="#cb5-59" aria-hidden="true" tabindex="-1"></a><span class="co">#| echo: false</span></span>
-<span id="cb5-60"><a href="#cb5-60" aria-hidden="true" tabindex="-1"></a><span class="co">#| include: false</span></span>
-<span id="cb5-61"><a href="#cb5-61" aria-hidden="true" tabindex="-1"></a><span class="co">#| eval: true</span></span>
-<span id="cb5-62"><a href="#cb5-62" aria-hidden="true" tabindex="-1"></a>scripts <span class="ot">&lt;-</span> <span class="fu">list.files</span>(<span class="at">path =</span> <span class="st">"scripts/"</span>,</span>
-<span id="cb5-63"><a href="#cb5-63" aria-hidden="true" tabindex="-1"></a>                      <span class="at">pattern =</span> <span class="st">".r"</span>,</span>
-<span id="cb5-64"><a href="#cb5-64" aria-hidden="true" tabindex="-1"></a>                      <span class="at">full.names =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb5-65"><a href="#cb5-65" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-66"><a href="#cb5-66" aria-hidden="true" tabindex="-1"></a><span class="fu">sapply</span>(scripts, knitr<span class="sc">::</span>read_chunk)</span>
-<span id="cb5-67"><a href="#cb5-67" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-68"><a href="#cb5-68" aria-hidden="true" tabindex="-1"></a>runComponent_Initialization <span class="ot">&lt;-</span> runComponent_Simulation <span class="sc">|</span> runComponent_Analysis <span class="sc">|</span> runComponent_Harvesting <span class="sc">|</span> runComponent_Reporting</span>
-<span id="cb5-69"><a href="#cb5-69" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-70"><a href="#cb5-70" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb5-71"><a href="#cb5-71" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-72"><a href="#cb5-72" aria-hidden="true" tabindex="-1"></a><span class="in">```{r, eval = runComponent_Initialization}</span></span>
-<span id="cb5-73"><a href="#cb5-73" aria-hidden="true" tabindex="-1"></a><span class="co">#| include: false</span></span>
-<span id="cb5-74"><a href="#cb5-74" aria-hidden="true" tabindex="-1"></a><span class="sc">&lt;</span><span class="er">&lt;</span>load_packages<span class="sc">&gt;</span><span class="er">&gt;</span></span>
-<span id="cb5-75"><a href="#cb5-75" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb5-76"><a href="#cb5-76" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-77"><a href="#cb5-77" aria-hidden="true" tabindex="-1"></a><span class="fu">## The Simulation component</span></span>
-<span id="cb5-78"><a href="#cb5-78" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-79"><a href="#cb5-79" aria-hidden="true" tabindex="-1"></a>In this component, we first defined the DGMs used a function</span>
-<span id="cb5-80"><a href="#cb5-80" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-81"><a href="#cb5-81" aria-hidden="true" tabindex="-1"></a><span class="in">```{r, file="scripts/requirements.r"}</span></span>
-<span id="cb5-82"><a href="#cb5-82" aria-hidden="true" tabindex="-1"></a><span class="co">#| eval: false</span></span>
-<span id="cb5-83"><a href="#cb5-83" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb5-84"><a href="#cb5-84" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-85"><a href="#cb5-85" aria-hidden="true" tabindex="-1"></a>Or with Quarto syntax:</span>
-<span id="cb5-86"><a href="#cb5-86" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-87"><a href="#cb5-87" aria-hidden="true" tabindex="-1"></a><span class="in">```{r, eval = runComponent_Simulation}</span></span>
-<span id="cb5-88"><a href="#cb5-88" aria-hidden="true" tabindex="-1"></a><span class="co">#| file: "scripts/requirements.r"</span></span>
-<span id="cb5-89"><a href="#cb5-89" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb5-90"><a href="#cb5-90" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-91"><a href="#cb5-91" aria-hidden="true" tabindex="-1"></a>Or with <span class="in">`@knitr`</span> calls:</span>
-<span id="cb5-92"><a href="#cb5-92" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-93"><a href="#cb5-93" aria-hidden="true" tabindex="-1"></a><span class="in">```{r, eval = runComponent_Simulation}</span></span>
-<span id="cb5-94"><a href="#cb5-94" aria-hidden="true" tabindex="-1"></a><span class="sc">&lt;</span><span class="er">&lt;</span>load_packages<span class="sc">&gt;</span><span class="er">&gt;</span></span>
-<span id="cb5-95"><a href="#cb5-95" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<div class="sourceCode" id="cb7" data-shortcodes="false"><pre class="sourceCode numberSource markdown number-lines code-with-copy"><code class="sourceCode markdown"><span id="cb7-1"><a href="#cb7-1"></a><span class="co">---</span></span>
+<span id="cb7-2"><a href="#cb7-2"></a><span class="an">title:</span><span class="co"> "Skewness and staging: Does the floor effect induce bias in multilevel AR(1) models?"</span></span>
+<span id="cb7-3"><a href="#cb7-3"></a><span class="an">subtitle:</span><span class="co"> "Reproducible codes"</span></span>
+<span id="cb7-4"><a href="#cb7-4"></a><span class="an">author:</span><span class="co"> "MH Manuel Haqiqatkhah"</span></span>
+<span id="cb7-5"><a href="#cb7-5"></a><span class="an">format:</span></span>
+<span id="cb7-6"><a href="#cb7-6"></a><span class="co">  html:</span></span>
+<span id="cb7-7"><a href="#cb7-7"></a><span class="co">    code-fold: true</span></span>
+<span id="cb7-8"><a href="#cb7-8"></a><span class="co">    code-tools: true</span></span>
+<span id="cb7-9"><a href="#cb7-9"></a><span class="co">    #code-overflow: scroll</span></span>
+<span id="cb7-10"><a href="#cb7-10"></a><span class="co">    code-line-numbers: true</span></span>
+<span id="cb7-11"><a href="#cb7-11"></a><span class="co">    toc: true</span></span>
+<span id="cb7-12"><a href="#cb7-12"></a><span class="co">    toc-location: right</span></span>
+<span id="cb7-13"><a href="#cb7-13"></a><span class="co">    toc-depth: 4</span></span>
+<span id="cb7-14"><a href="#cb7-14"></a><span class="co">    code-summary: "Show the code"</span></span>
+<span id="cb7-15"><a href="#cb7-15"></a><span class="co">    reference-location: margin</span></span>
+<span id="cb7-16"><a href="#cb7-16"></a><span class="co">    citation-location: margin</span></span>
+<span id="cb7-17"><a href="#cb7-17"></a><span class="co">    # theme:</span></span>
+<span id="cb7-18"><a href="#cb7-18"></a><span class="co">    #   light: litera</span></span>
+<span id="cb7-19"><a href="#cb7-19"></a><span class="co">    #   dark: darkly</span></span>
+<span id="cb7-20"><a href="#cb7-20"></a><span class="an">execute:</span></span>
+<span id="cb7-21"><a href="#cb7-21"></a><span class="co">  enabled: true</span></span>
+<span id="cb7-22"><a href="#cb7-22"></a><span class="co">  echo: true</span></span>
+<span id="cb7-23"><a href="#cb7-23"></a><span class="co">  include: true</span></span>
+<span id="cb7-24"><a href="#cb7-24"></a><span class="co">  warning: false</span></span>
+<span id="cb7-25"><a href="#cb7-25"></a><span class="co">  error: false</span></span>
+<span id="cb7-26"><a href="#cb7-26"></a><span class="an">editor:</span><span class="co"> visual</span></span>
+<span id="cb7-27"><a href="#cb7-27"></a><span class="an">bibliography:</span><span class="co"> references.bib</span></span>
+<span id="cb7-28"><a href="#cb7-28"></a><span class="co">---</span></span>
+<span id="cb7-29"><a href="#cb7-29"></a></span>
+<span id="cb7-30"><a href="#cb7-30"></a><span class="fu"># Introduction {#sec-introduction}</span></span>
+<span id="cb7-31"><a href="#cb7-31"></a></span>
+<span id="cb7-32"><a href="#cb7-32"></a>This document contains the reproducible code for the manuscript Skewness and staging: Does the floor effect induce bias in multilevel AR(1) models? by M. M. Haqiqatkhah, O. Ryan, and E. L. Hamaker. please cite as:</span>
+<span id="cb7-33"><a href="#cb7-33"></a></span>
+<span id="cb7-34"><a href="#cb7-34"></a>...</span>
+<span id="cb7-35"><a href="#cb7-35"></a></span>
+<span id="cb7-36"><a href="#cb7-36"></a>In this study, we simulated multilevel data from three data generating mechanisms (DGMs), namely, the AR(1, $\chi^2$AR(1), BinAR(1), and PoDAR(1) models with different parameter sets.\</span>
+<span id="cb7-37"><a href="#cb7-37"></a>For details, see the paper.</span>
+<span id="cb7-38"><a href="#cb7-38"></a></span>
+<span id="cb7-39"><a href="#cb7-39"></a>The simulation was conducted using the following modular pipeline design, inspired by Bien's R package <span class="in">`simulator`</span> <span class="co">[</span><span class="ot">-@bien_2016_SimulatorEngineStreamline</span><span class="co">]</span>, consisting of the following **components**:</span>
+<span id="cb7-40"><a href="#cb7-40"></a></span>
+<span id="cb7-41"><a href="#cb7-41"></a>A.  *Simulation*: generating the datasets</span>
+<span id="cb7-42"><a href="#cb7-42"></a>B.  *Analysis*: modeling the data</span>
+<span id="cb7-43"><a href="#cb7-43"></a>C.  *Harvesting*: collecting the relevant parameter estimates</span>
+<span id="cb7-44"><a href="#cb7-44"></a>D.  *Reporting*: making tables and plots</span>
+<span id="cb7-45"><a href="#cb7-45"></a></span>
+<span id="cb7-46"><a href="#cb7-46"></a>And the components were placed in a **pipeline**, that managed:</span>
+<span id="cb7-47"><a href="#cb7-47"></a></span>
+<span id="cb7-48"><a href="#cb7-48"></a><span class="ss">1.  </span>Making the simulation design matrix that include all relevant conditions</span>
+<span id="cb7-49"><a href="#cb7-49"></a><span class="ss">2.  </span>Book-keeping data files belonging to each replication of each condition</span>
+<span id="cb7-50"><a href="#cb7-50"></a><span class="ss">3.  </span>Performing simulations in batch</span>
+<span id="cb7-51"><a href="#cb7-51"></a><span class="ss">4.  </span>Performing Analyses in batch</span>
+<span id="cb7-52"><a href="#cb7-52"></a><span class="ss">5.  </span>Collecting the data in batch</span>
+<span id="cb7-53"><a href="#cb7-53"></a></span>
+<span id="cb7-54"><a href="#cb7-54"></a>This document is structured as follows. In @sec-components, we explain the four components and the functions used therein. Then, in @sec-pipeline we explain the wrapper functions used in the pipeline, and show how the pipeline was---and can be---executed. Finally, in @sec-figures, we discuss how the harvested data was used to make the figures used in the paper (and others that were not included).</span>
+<span id="cb7-55"><a href="#cb7-55"></a></span>
+<span id="cb7-56"><a href="#cb7-56"></a><span class="co">&lt;!--# In what follows we describe the steps and provide the codes used in this study. In the other tab of this document, we provide the code to generate additional plots shown in the paper. Note that although the codes provided here are cleaned as much as possible, they are not necessarily succinctly written; some functions were written to accommodate the most general functionalities which turned out to be not necessary for the simulation study. --&gt;</span></span>
+<span id="cb7-57"><a href="#cb7-57"></a></span>
+<span id="cb7-58"><a href="#cb7-58"></a>Before we begin, we need to read the scripts to include them in this document. By default, none of the scripts run here (as they are time consuming). To run the scripts of each component, you can change the following variables to <span class="in">`TRUE`</span> and re-render the document:</span>
+<span id="cb7-59"><a href="#cb7-59"></a></span>
+<span id="cb7-62"><a href="#cb7-62"></a><span class="in">```{r}</span></span>
+<span id="cb7-63"><a href="#cb7-63"></a><span class="co">#| eval: true</span></span>
+<span id="cb7-64"><a href="#cb7-64"></a><span class="co">#| code-fold: false</span></span>
+<span id="cb7-65"><a href="#cb7-65"></a>runComponent_Simulation <span class="ot">&lt;-</span> <span class="cn">FALSE</span></span>
+<span id="cb7-66"><a href="#cb7-66"></a>runComponent_Analysis <span class="ot">&lt;-</span> <span class="cn">FALSE</span></span>
+<span id="cb7-67"><a href="#cb7-67"></a>runComponent_Harvesting <span class="ot">&lt;-</span> <span class="cn">FALSE</span></span>
+<span id="cb7-68"><a href="#cb7-68"></a>runComponent_Reporting <span class="ot">&lt;-</span> <span class="cn">FALSE</span></span>
+<span id="cb7-69"><a href="#cb7-69"></a><span class="in">```</span></span>
+<span id="cb7-70"><a href="#cb7-70"></a></span>
+<span id="cb7-71"><a href="#cb7-71"></a>In case you want to change the scripts (e.g., to run a smaller portion of the simulation, or try other parameters, etc.), you should look up the <span class="in">`kintr`</span> parameters called in each chunk (with <span class="in">`&lt;&lt;some_param&gt;&gt;`</span>) and find the corresponding code (under <span class="in">`## @knitr some_param`</span>) in the <span class="in">`scripts`</span> folder.</span>
+<span id="cb7-72"><a href="#cb7-72"></a></span>
+<span id="cb7-75"><a href="#cb7-75"></a><span class="in">```{r}</span></span>
+<span id="cb7-76"><a href="#cb7-76"></a><span class="co">#| label: setup</span></span>
+<span id="cb7-77"><a href="#cb7-77"></a><span class="co">#| echo: false</span></span>
+<span id="cb7-78"><a href="#cb7-78"></a><span class="co">#| include: false</span></span>
+<span id="cb7-79"><a href="#cb7-79"></a><span class="co">#| eval: true</span></span>
+<span id="cb7-80"><a href="#cb7-80"></a>scripts <span class="ot">&lt;-</span> <span class="fu">list.files</span>(<span class="at">path =</span> <span class="st">"scripts/"</span>,</span>
+<span id="cb7-81"><a href="#cb7-81"></a>                      <span class="at">pattern =</span> <span class="st">".r"</span>,</span>
+<span id="cb7-82"><a href="#cb7-82"></a>                      <span class="at">full.names =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb7-83"><a href="#cb7-83"></a></span>
+<span id="cb7-84"><a href="#cb7-84"></a><span class="fu">sapply</span>(scripts, knitr<span class="sc">::</span>read_chunk)</span>
+<span id="cb7-85"><a href="#cb7-85"></a></span>
+<span id="cb7-86"><a href="#cb7-86"></a>runComponent_Initialization <span class="ot">&lt;-</span> runComponent_Simulation <span class="sc">|</span> runComponent_Analysis <span class="sc">|</span> runComponent_Harvesting <span class="sc">|</span> runComponent_Reporting</span>
+<span id="cb7-87"><a href="#cb7-87"></a></span>
+<span id="cb7-88"><a href="#cb7-88"></a><span class="in">```</span></span>
+<span id="cb7-89"><a href="#cb7-89"></a></span>
+<span id="cb7-90"><a href="#cb7-90"></a><span class="in">```{r, eval = runComponent_Initialization}</span></span>
+<span id="cb7-91"><a href="#cb7-91"></a><span class="co">#| include: false</span></span>
+<span id="cb7-92"><a href="#cb7-92"></a><span class="sc">&lt;</span><span class="er">&lt;</span>load_packages<span class="sc">&gt;</span><span class="er">&gt;</span></span>
+<span id="cb7-93"><a href="#cb7-93"></a><span class="in">```</span></span>
+<span id="cb7-94"><a href="#cb7-94"></a></span>
+<span id="cb7-95"><a href="#cb7-95"></a><span class="fu"># Core components {#sec-components}</span></span>
+<span id="cb7-96"><a href="#cb7-96"></a></span>
+<span id="cb7-97"><a href="#cb7-97"></a><span class="fu">## The Simulation component</span></span>
+<span id="cb7-98"><a href="#cb7-98"></a></span>
+<span id="cb7-99"><a href="#cb7-99"></a>The generated data</span>
+<span id="cb7-100"><a href="#cb7-100"></a></span>
+<span id="cb7-101"><a href="#cb7-101"></a><span class="fu">### Data-generating models specifications</span></span>
+<span id="cb7-102"><a href="#cb7-102"></a></span>
+<span id="cb7-103"><a href="#cb7-103"></a>First we define functions for each data-generating models (DGMs) that can produce univariate, single-subject ($N=1$) time series of desired length $T$ (default: <span class="in">`T = 100`</span>) with the two canonical parameters and a given random seed (default: <span class="in">`seed = 0`</span>). All model(-implied) parameters are saved in a list (called <span class="in">`pa`</span>).</span>
+<span id="cb7-104"><a href="#cb7-104"></a></span>
+<span id="cb7-105"><a href="#cb7-105"></a>For each model, the first observation ($X_1$) is randomly drawn from the model-implied marginal distribution, to eliminate the need for removing the burn-in window in the beginning of the data. After the data is generated, in case the argument <span class="in">`only.ts`</span> is set to be <span class="in">`TRUE`</span>, the raw data (as a vector of length <span class="in">`T`</span>) is returned. Otherwise, the function calculates empirical dynamic ($\phi$) and marginal ($\mu$, $\sigma^2$, and $\gamma$) parameters based on the simulated data, and save it in a list (<span class="in">`Empirical.Parameters`</span>). Furthermore, two $\LaTeX$-ready strings (<span class="in">`Model.Description`</span> and <span class="in">`Model.Description.Short`</span>) are made to include a summary of the model parameters, which can be used, e.g., in plots. Finally, in case <span class="in">`only.ts != TRUE`</span>, the function returns a list consisting of the time series (stored in <span class="in">`x`</span>), verbal description of the dataset (<span class="in">`Model.Description`</span> and <span class="in">`Model.Description.Short`</span>), theoretical (i.e., model-implied) parameters (<span class="in">`Model.Parameters`</span>), and empirical (i.e., sample) estimated parameters (<span class="in">`Empirical.Parameters`</span>).</span>
+<span id="cb7-106"><a href="#cb7-106"></a></span>
+<span id="cb7-107"><a href="#cb7-107"></a>::: panel-tabset</span>
+<span id="cb7-108"><a href="#cb7-108"></a><span class="fu">## The AR(1) model</span></span>
+<span id="cb7-109"><a href="#cb7-109"></a></span>
+<span id="cb7-110"><a href="#cb7-110"></a>The canonical parameters of the AR(1) model with normally distributed residuals (which we referred to as <span class="in">`NAR(1)`</span> in the simulation) are the autoregressive parameter $\phi$ (default: <span class="in">`phi = 0.4`</span>), mean $\mu$ (default: <span class="in">`Mean = 50`</span>), and marginal variance $\sigma^2$ (default: <span class="in">`var.marginal = 4`</span>).</span>
+<span id="cb7-111"><a href="#cb7-111"></a></span>
+<span id="cb7-112"><a href="#cb7-112"></a><span class="in">```{r, eval = runComponent_Simulation}</span></span>
+<span id="cb7-113"><a href="#cb7-113"></a><span class="sc">&lt;</span><span class="er">&lt;</span>dgm_nar<span class="sc">&gt;</span><span class="er">&gt;</span></span>
+<span id="cb7-114"><a href="#cb7-114"></a><span class="in">```</span></span>
+<span id="cb7-115"><a href="#cb7-115"></a></span>
+<span id="cb7-116"><a href="#cb7-116"></a><span class="fu">## The $\chi^2$AR(1) model</span></span>
+<span id="cb7-117"><a href="#cb7-117"></a></span>
+<span id="cb7-118"><a href="#cb7-118"></a>The canonical parameters of the $\chi^2$AR(1) model (which we referred to as <span class="in">`ChiAR(1)`</span> in the simulation) are the autoregressive parameter $\phi$ (default: <span class="in">`phi = 0.4`</span>), and degrees of freedom $\nu$ (default: <span class="in">`nu = 3`</span>). We set the intercept to zero (<span class="in">`c = 0`</span>; see the Supplemental Materials).</span>
+<span id="cb7-119"><a href="#cb7-119"></a></span>
+<span id="cb7-120"><a href="#cb7-120"></a><span class="in">```{r, eval = runComponent_Simulation}</span></span>
+<span id="cb7-121"><a href="#cb7-121"></a><span class="sc">&lt;</span><span class="er">&lt;</span>dgm_chiar<span class="sc">&gt;</span><span class="er">&gt;</span></span>
+<span id="cb7-122"><a href="#cb7-122"></a><span class="in">```</span></span>
+<span id="cb7-123"><a href="#cb7-123"></a></span>
+<span id="cb7-124"><a href="#cb7-124"></a><span class="fu">## The BinAR(1) model</span></span>
+<span id="cb7-125"><a href="#cb7-125"></a></span>
+<span id="cb7-126"><a href="#cb7-126"></a>The canonical parameters of the BinAR(1) model (which we referred to as <span class="in">`BinAR(1)`</span> in the simulation) are the survival probability $\alpha$ (default: <span class="in">`alpha = 0.5`</span>) and the revival probability $\beta$ (default: <span class="in">`beta = 0.4`</span>). By default, the maximum value on scale $k$ was set to <span class="in">`k = 10`</span>.</span>
+<span id="cb7-127"><a href="#cb7-127"></a></span>
+<span id="cb7-128"><a href="#cb7-128"></a><span class="in">```{r, eval = runComponent_Simulation}</span></span>
+<span id="cb7-129"><a href="#cb7-129"></a><span class="sc">&lt;</span><span class="er">&lt;</span>dgm_binar<span class="sc">&gt;</span><span class="er">&gt;</span></span>
+<span id="cb7-130"><a href="#cb7-130"></a><span class="in">```</span></span>
+<span id="cb7-131"><a href="#cb7-131"></a></span>
+<span id="cb7-132"><a href="#cb7-132"></a><span class="fu">## The PoDAR(1) model</span></span>
+<span id="cb7-133"><a href="#cb7-133"></a></span>
+<span id="cb7-134"><a href="#cb7-134"></a>The canonical parameters of the PoDAR(1) model (which we referred to as <span class="in">`PoDAR(1)`</span> in the simulation) are the persistence probability $\tau$ (default: <span class="in">`tau = 0.7`</span>) and the average rate $\lambda$ (default: <span class="in">`lambda = 0.5`</span>).</span>
+<span id="cb7-135"><a href="#cb7-135"></a></span>
+<span id="cb7-136"><a href="#cb7-136"></a><span class="in">```{r, eval = runComponent_Simulation}</span></span>
+<span id="cb7-137"><a href="#cb7-137"></a><span class="sc">&lt;</span><span class="er">&lt;</span>dgm_podar<span class="sc">&gt;</span><span class="er">&gt;</span></span>
+<span id="cb7-138"><a href="#cb7-138"></a><span class="in">```</span></span>
+<span id="cb7-139"><a href="#cb7-139"></a>:::</span>
+<span id="cb7-140"><a href="#cb7-140"></a></span>
+<span id="cb7-141"><a href="#cb7-141"></a><span class="fu">### General DGM wrappers</span></span>
+<span id="cb7-142"><a href="#cb7-142"></a></span>
+<span id="cb7-143"><a href="#cb7-143"></a>As explained in the paper, each model can be specified using two parameters (and "hyper-parameters" such as $c = 0$ for the $\chi^2$AR(1) model and $k$ for the BinAR(1) model. Thus, with two relevant parameters for each model, we may calculate the canonical model parameters and generate data.</span>
+<span id="cb7-144"><a href="#cb7-144"></a></span>
+<span id="cb7-145"><a href="#cb7-145"></a>To make these calculations easier, we start by writing a function (<span class="in">`dgm_parameterizer`</span>) that calculates all model-implied parameters of a DGM (specified using the <span class="in">`Model`</span> argument) based on the provided parameters, and saves them in a list (<span class="in">`pa`</span>). In case some required parameters are missing, default values are given (e.g., if the autoregressive parameter $\phi$ is not given, it is set to <span class="in">`phi = 0.2`</span> by default)</span>
+<span id="cb7-146"><a href="#cb7-146"></a></span>
+<span id="cb7-147"><a href="#cb7-147"></a>Then we use another list of model specification</span>
+<span id="cb7-148"><a href="#cb7-148"></a></span>
+<span id="cb7-149"><a href="#cb7-149"></a>Furthermore, we</span>
+<span id="cb7-150"><a href="#cb7-150"></a></span>
+<span id="cb7-151"><a href="#cb7-151"></a>::: panel-tabset</span>
+<span id="cb7-152"><a href="#cb7-152"></a><span class="fu">## dgm_parameterizer: calculate model-implied parameters</span></span>
+<span id="cb7-153"><a href="#cb7-153"></a></span>
+<span id="cb7-154"><a href="#cb7-154"></a><span class="in">```{r, eval = runComponent_Simulation}</span></span>
+<span id="cb7-155"><a href="#cb7-155"></a><span class="sc">&lt;</span><span class="er">&lt;</span>load_packages<span class="sc">&gt;</span><span class="er">&gt;</span></span>
+<span id="cb7-156"><a href="#cb7-156"></a><span class="in">```</span></span>
+<span id="cb7-157"><a href="#cb7-157"></a></span>
+<span id="cb7-158"><a href="#cb7-158"></a><span class="fu">## dgm_generator: wrapper for DGM functions</span></span>
+<span id="cb7-159"><a href="#cb7-159"></a></span>
+<span id="cb7-160"><a href="#cb7-160"></a><span class="in">```{r, eval = runComponent_Simulation}</span></span>
+<span id="cb7-161"><a href="#cb7-161"></a><span class="sc">&lt;</span><span class="er">&lt;</span>dgm_generator<span class="sc">&gt;</span><span class="er">&gt;</span></span>
+<span id="cb7-162"><a href="#cb7-162"></a><span class="in">```</span></span>
+<span id="cb7-163"><a href="#cb7-163"></a>:::</span>
+<span id="cb7-164"><a href="#cb7-164"></a></span>
+<span id="cb7-165"><a href="#cb7-165"></a><span class="fu">### Dataset generation</span></span>
+<span id="cb7-166"><a href="#cb7-166"></a></span>
+<span id="cb7-167"><a href="#cb7-167"></a><span class="fu"># Pipeline {#sec-pipeline}</span></span>
+<span id="cb7-168"><a href="#cb7-168"></a></span>
+<span id="cb7-169"><a href="#cb7-169"></a>We implemented each of these tasks in separate functions that were essentially wrapper functions (with parallel-computing implementation) around the modular components. Using these wrapper functions, each replication of each simulated condition was saved in a separate <span class="in">`.rds`</span> file. These data files were fed to the analysis wrapper function whose output was saved in separate <span class="in">`.rds`</span> data files. To collect relevant parameter estimates, another wrapper function was used to read the data files and save the desired parameters in a dataframe, which then used in reporting.</span>
+<span id="cb7-170"><a href="#cb7-170"></a></span>
+<span id="cb7-171"><a href="#cb7-171"></a>The outcomes of the components are saved in separate <span class="in">`.rds`</span> files and indexed by unique, descriptive names, and each replication is given a unique numeric identifier that is also used as the random seed used to generate the dataset within each replication. The file names and address are stored in two dataframes along with model parameters used to generate each dataset, and these dataframes are used when reading and writing data files in other components.</span>
+<span id="cb7-172"><a href="#cb7-172"></a></span>
+<span id="cb7-173"><a href="#cb7-173"></a><span class="fu">## Wrapper functions</span></span>
+<span id="cb7-174"><a href="#cb7-174"></a></span>
+<span id="cb7-175"><a href="#cb7-175"></a><span class="fu">## Pipeline code</span></span>
+<span id="cb7-176"><a href="#cb7-176"></a></span>
+<span id="cb7-177"><a href="#cb7-177"></a><span class="fu"># Making the figures {#sec-figures}</span></span>
+<span id="cb7-178"><a href="#cb7-178"></a></span>
+<span id="cb7-179"><a href="#cb7-179"></a><span class="fu">## Simulation results</span></span>
+<span id="cb7-180"><a href="#cb7-180"></a></span>
+<span id="cb7-181"><a href="#cb7-181"></a><span class="fu">## Profiles of simulated datasets</span></span>
 </code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div></div></div></div></div>
 </div> <!-- /content -->
