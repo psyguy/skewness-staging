@@ -7,6 +7,7 @@ format:
     code-fold: true
     code-tools: true
     #code-overflow: scroll
+    code-overflow: wrap
     code-line-numbers: true
     toc: true
     toc-location: right
@@ -103,7 +104,32 @@ For each model, the first observation ($X_1$) is randomly drawn from the model-i
 ::: panel-tabset
 ## The AR(1) model
 
-The canonical parameters of the AR(1) model with normally distributed residuals (which we referred to as `NAR(1)` in the simulation) are the autoregressive parameter $\phi$ (default: `phi = 0.4`), mean $\mu$ (default: `Mean = 50`), and marginal variance $\sigma^2$ (default: `var.marginal = 4`).
+The canonical parameters of the AR(1) model with normally distributed residuals (which we referred to as `NAR(1)` in the simulation) are the autoregressive parameter $\phi$ (default: `phi = 0.4`), mean $\mu$ (default: `Mean = 50`), and the marginal variance $\sigma^2$ (default: `var.marginal = 4`). Based on the marginal variance, the residual variance (`var.resid`) is calculated via $\sigma^2_\epsilon = \sigma^2 (1 - \phi^2)$.
+
+###### Construction
+
+The time series is constructed by first generating a zero-centered time series $\tilde X_t$ (`x_cent`). To do so, first the initial observation in the time series (`x_cent[1]`) is sampled from normal distribution with mean zero and a variance equal to the marginal variance of the model:
+
+$$
+\tilde X_1 \sim \mathcal{N}(0, \sigma^2)
+$$
+
+Then, the remainder of the time series is generated using the definition of the AR(1) model (not that the here the residual variance is used in the normal distribution):
+
+$$
+\begin{aligned}
+\tilde X_{t} &= \phi \tilde X_{t-1} + \epsilon_{t} \\
+\epsilon_{t} &\sim \mathcal{N}(0, {\sigma^2_{\epsilon}})
+\end{aligned}
+$$ Finally, the mean is added to the centered zero-centered time series to reach the final time series with mean $\mu$:
+
+$$
+X_t = \tilde X_t + \mu
+$$
+
+###### Code
+
+Click to expand the code:
 
 ```{r, eval = runComponent_Simulation}
 <<dgm_nar>>
@@ -111,7 +137,28 @@ The canonical parameters of the AR(1) model with normally distributed residuals 
 
 ## The $\chi^2$AR(1) model
 
-The canonical parameters of the $\chi^2$AR(1) model (which we referred to as `ChiAR(1)` in the simulation) are the autoregressive parameter $\phi$ (default: `phi = 0.4`), and degrees of freedom $\nu$ (default: `nu = 3`). We set the intercept to zero (`c = 0`; see the Supplemental Materials).
+The canonical parameters of the $\chi^2$AR(1) model (which we referred to as `ChiAR(1)` in the simulation) are the autoregressive parameter $\phi$ (default: `phi = 0.4`), and degrees of freedom $\nu$ (default: `nu = 3`). We set the intercept to zero (`c = 0`).[^1]
+
+###### Construction
+
+Similar to the AR(1) model, we need to sample the first observation of the $\chi^2$AR(1) model from its marginal distribution. However, since this model does not have a closed-form marginal distribution, as an approximation, we instead sample `x[1]` from a $\chi^2$ distribution with $\nu$ degrees of freedom:
+
+$$
+X_1 \sim \chi^2(\nu)
+$$
+
+Then, we generate the remainder of the time series using the definition of the $\chi^2$AR(1) model:
+
+$$
+\begin{aligned}
+X_{t} &= c + \phi X_{t-1} + a_{t}\\
+a_{t} &\sim \chi^2(\nu).
+\end{aligned}
+$$
+
+###### Code
+
+Click to expand the code:
 
 ```{r, eval = runComponent_Simulation}
 <<dgm_chiar>>
@@ -121,6 +168,32 @@ The canonical parameters of the $\chi^2$AR(1) model (which we referred to as `Ch
 
 The canonical parameters of the BinAR(1) model (which we referred to as `BinAR(1)` in the simulation) are the survival probability $\alpha$ (default: `alpha = 0.5`) and the revival probability $\beta$ (default: `beta = 0.4`). By default, the maximum value on scale $k$ was set to `k = 10`.
 
+###### Construction
+
+We first calculate the $\theta$ parameter, which characterizes the marginal distribution of the BinaR(1) model:
+
+$$
+\theta = \frac{k \beta}{1-(\alpha-\beta)}
+$$ Then we draw $X_1$ (`x[1]`) from the marginal distribution of the model:
+
+$$
+X_1 \sim Binom(k, \theta)
+$$
+
+The rest of time series is generated sequentially, for each time point $t$, by drawing values for the number of survived (`S_t[t]`) and revived (`R_t[t]`) elements of the BinAR(1) model based on the previous observations ($X_{t-1}$), and then adding them:
+
+$$
+\begin{aligned}
+S_{t} &\sim Binom(X_{t-1}, \alpha) \\
+R_t &\sim Binom(k -X_{t-1}, \beta) \\
+X_{t} &= S_t + R_t
+\end{aligned}
+$$
+
+###### Code
+
+Click to expand the code:
+
 ```{r, eval = runComponent_Simulation}
 <<dgm_binar>>
 ```
@@ -129,10 +202,34 @@ The canonical parameters of the BinAR(1) model (which we referred to as `BinAR(1
 
 The canonical parameters of the PoDAR(1) model (which we referred to as `PoDAR(1)` in the simulation) are the persistence probability $\tau$ (default: `tau = 0.7`) and the average rate $\lambda$ (default: `lambda = 0.5`).
 
+###### Construction
+
+To generate the time series, we first draw the first observation $X_1$ (`x[1]`) a Poisson distribution with rate $\lambda$:
+
+$$
+X_1 \sim Poisson(\lambda)
+$$
+
+And generate the rest of the time series by first drawing $Z_t$ from a Poisson distribution with rate $\lambda$ and $P_t$ from a binomial distribution with size probability of success $\tau$ (that is equivalent to a Bernoulli distribution with probability $\tau$). Then, we calculate $X_t$ based on the previous observation (`x[t-1]`\]) and values of $Z_t$ (`Z_t`) and $P_t$ (`P_t[t]`), using the definition of the PoDAR(1) model:
+
+$$
+\begin{aligned}
+Z_t &\sim Poisson(\lambda) \\
+P_t &\sim Binom(1, \tau) \\
+X_t &= P_t X_{t-1} + (1-P_t) Z_t
+\end{aligned}
+$$
+
+###### Code
+
+Click to expand the code:
+
 ```{r, eval = runComponent_Simulation}
 <<dgm_podar>>
 ```
 :::
+
+[^1]: The $\chi^2$AR(1), in a more general form, can have an intercept ($X_{t} = c + \phi X_{t-1} + a_t, \; \; a_t \sim \chi^2(\nu)$. Since the intercept was set to zero in the simulation study, we discussed a zero-intercept versionof this model ($c=0$) in the paper. See the Supplemental Materials for more details.
 
 ### General DGM wrappers
 
