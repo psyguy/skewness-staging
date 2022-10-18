@@ -6,24 +6,37 @@ format:
   html:
     code-fold: true
     code-tools: true
-    #code-overflow: scroll
     code-overflow: wrap
     code-line-numbers: true
     toc: true
-    toc-location: right
-    toc-depth: 4
-    code-summary: "Show the code"
-    reference-location: margin
+    toc-location: left
+    toc-depth: 5
+    code-summary: "Click to expand the code"
+    anchor-sections: true
+    reference-location: document
     citation-location: margin
-    # theme:
-    #   light: litera
-    #   dark: darkly
+  # theme:
+  #   light: litera
+  #   dark: darkly
+  pdf:
+    number-sections: true
+    number-depth: 8
+    toc: true
+    toc-depth: 8
+# For html
 execute:
   enabled: true
   echo: true
   include: true
   warning: false
   error: false
+# For pdf
+# execute:
+#   enabled: true
+#   echo: false
+#   include: false
+#   warning: false
+#   error: false
 editor: visual
 bibliography: references.bib
 ---
@@ -82,6 +95,8 @@ sapply(scripts, knitr::read_chunk)
 
 runComponent_Initialization <- runComponent_Simulation | runComponent_Analysis | runComponent_Harvesting | runComponent_Reporting
 
+library(knitr)
+
 ```
 
 ```{r, eval = runComponent_Initialization}
@@ -91,22 +106,27 @@ runComponent_Initialization <- runComponent_Simulation | runComponent_Analysis |
 
 # Core components {#sec-components}
 
-## The Simulation component
+## The *Simulation* component
 
-The generated data
+The Simulation component consists of four sets of functions:
+
+i.  Functions that implement the DGMs and generate univariate ($N=1$) time series of length $T$ from the parameters given to them;
+ii. Wrappers that interface the DGM functions;
+iii. A function that
+iv. A wrapper to generate datasets (consisting on $N$ time series of length $T$)
 
 ### Data-generating models specifications
 
 First we define functions for each data-generating models (DGMs) that can produce univariate, single-subject ($N=1$) time series of desired length $T$ (default: `T = 100`) with the two canonical parameters and a given random seed (default: `seed = 0`). All model(-implied) parameters are saved in a list (called `pa`).
 
-For each model, the first observation ($X_1$) is randomly drawn from the model-implied marginal distribution, to eliminate the need for removing the burn-in window in the beginning of the data. After the data is generated, in case the argument `only.ts` is set to be `TRUE`, the raw data (as a vector of length `T`) is returned. Otherwise, the function calculates empirical dynamic ($\phi$) and marginal ($\mu$, $\sigma^2$, and $\gamma$) parameters based on the simulated data, and save it in a list (`Empirical.Parameters`). Furthermore, two $\LaTeX$-ready strings (`Model.Description` and `Model.Description.Short`) are made to include a summary of the model parameters, which can be used, e.g., in plots. Finally, in case `only.ts != TRUE`, the function returns a list consisting of the time series (stored in `x`), verbal description of the dataset (`Model.Description` and `Model.Description.Short`), theoretical (i.e., model-implied) parameters (`Model.Parameters`), and empirical (i.e., sample) estimated parameters (`Empirical.Parameters`).
+For each model, the first observation ($X_1$) is randomly drawn from the model-implied marginal distribution, to eliminate the need for removing the burn-in window in the beginning of the data. After the data is generated, in case the argument `only.ts` is set to be `TRUE`, the raw data (as a vector of length `T`) is returned. Otherwise, the function calculates empirical dynamic ($\phi$) and marginal ($\mu$, $\sigma^2$, and $\gamma$) parameters based on the simulated data, and save it in a list (`Empirical.Parameters`). Furthermore, two `r ifelse(is_html_output(), r"($\mathrm{\LaTeX{}}$)", r"(\LaTeX{})")`-ready strings (`Model.Description` and `Model.Description.Short`) are made which include a summary of the model parameters (that can be used, e.g., in plots). Finally, in case `only.ts != TRUE`, the function returns a list consisting of the time series (stored in `x`), verbal description of the dataset (`Model.Description` and `Model.Description.Short`), theoretical (i.e., model-implied) parameters (`Model.Parameters`), and empirical (i.e., sample) estimated parameters (`Empirical.Parameters`).
 
 ::: panel-tabset
-## The AR(1) model
+#### The AR(1) model
 
 The canonical parameters of the AR(1) model with normally distributed residuals (which we referred to as `NAR(1)` in the simulation) are the autoregressive parameter $\phi$ (default: `phi = 0.4`), mean $\mu$ (default: `Mean = 50`), and the marginal variance $\sigma^2$ (default: `var.marginal = 4`). Based on the marginal variance, the residual variance (`var.resid`) is calculated via $\sigma^2_\epsilon = \sigma^2 (1 - \phi^2)$.
 
-###### Construction
+##### Construction
 
 The time series is constructed by first generating a zero-centered time series $\tilde X_t$ (`x_cent`). To do so, first the initial observation in the time series (`x_cent[1]`) is sampled from normal distribution with mean zero and a variance equal to the marginal variance of the model:
 
@@ -127,19 +147,17 @@ $$
 X_t = \tilde X_t + \mu
 $$
 
-###### Code
-
-Click to expand the code:
+##### Code
 
 ```{r, eval = runComponent_Simulation}
 <<dgm_nar>>
 ```
 
-## The $\chi^2$AR(1) model
+#### The $\chi^2$AR(1) model
 
 The canonical parameters of the $\chi^2$AR(1) model (which we referred to as `ChiAR(1)` in the simulation) are the autoregressive parameter $\phi$ (default: `phi = 0.4`), and degrees of freedom $\nu$ (default: `nu = 3`). We set the intercept to zero (`c = 0`).[^1]
 
-###### Construction
+##### Construction
 
 Similar to the AR(1) model, we need to sample the first observation of the $\chi^2$AR(1) model from its marginal distribution. However, since this model does not have a closed-form marginal distribution, as an approximation, we instead sample `x[1]` from a $\chi^2$ distribution with $\nu$ degrees of freedom:
 
@@ -151,24 +169,22 @@ Then, we generate the remainder of the time series using the definition of the $
 
 $$
 \begin{aligned}
-X_{t} &= c + \phi X_{t-1} + a_{t}\\
+X_{t} &= c + \phi X_{t-1} + a_{t} \\
 a_{t} &\sim \chi^2(\nu).
 \end{aligned}
 $$
 
-###### Code
-
-Click to expand the code:
+##### Code
 
 ```{r, eval = runComponent_Simulation}
 <<dgm_chiar>>
 ```
 
-## The BinAR(1) model
+#### The BinAR(1) model
 
 The canonical parameters of the BinAR(1) model (which we referred to as `BinAR(1)` in the simulation) are the survival probability $\alpha$ (default: `alpha = 0.5`) and the revival probability $\beta$ (default: `beta = 0.4`). By default, the maximum value on scale $k$ was set to `k = 10`.
 
-###### Construction
+##### Construction
 
 We first calculate the $\theta$ parameter, which characterizes the marginal distribution of the BinaR(1) model:
 
@@ -190,27 +206,25 @@ X_{t} &= S_t + R_t
 \end{aligned}
 $$
 
-###### Code
-
-Click to expand the code:
+##### Code
 
 ```{r, eval = runComponent_Simulation}
 <<dgm_binar>>
 ```
 
-## The PoDAR(1) model
+#### The PoDAR(1) model
 
 The canonical parameters of the PoDAR(1) model (which we referred to as `PoDAR(1)` in the simulation) are the persistence probability $\tau$ (default: `tau = 0.7`) and the average rate $\lambda$ (default: `lambda = 0.5`).
 
-###### Construction
+##### Construction
 
-To generate the time series, we first draw the first observation $X_1$ (`x[1]`) a Poisson distribution with rate $\lambda$:
+To generate the time series, we first draw the first observation $X_1$ (`x[1]`) from a Poisson distribution with rate $\lambda$:
 
 $$
 X_1 \sim Poisson(\lambda)
 $$
 
-And generate the rest of the time series by first drawing $Z_t$ from a Poisson distribution with rate $\lambda$ and $P_t$ from a binomial distribution with size probability of success $\tau$ (that is equivalent to a Bernoulli distribution with probability $\tau$). Then, we calculate $X_t$ based on the previous observation (`x[t-1]`\]) and values of $Z_t$ (`Z_t`) and $P_t$ (`P_t[t]`), using the definition of the PoDAR(1) model:
+And generate the rest of the time series by first drawing $Z_t$ from a Poisson distribution with rate $\lambda$ and $P_t$ from a binomial distribution with size probability of success $\tau$ (that is equivalent to a Bernoulli distribution with probability $\tau$). Then, we calculate $X_t$ based on the previous observation (`x[t-1]`) and values of $Z_t$ (`Z_t[t]`) and $P_t$ (`P_t[t]`), using the definition of the PoDAR(1) model:
 
 $$
 \begin{aligned}
@@ -220,35 +234,33 @@ X_t &= P_t X_{t-1} + (1-P_t) Z_t
 \end{aligned}
 $$
 
-###### Code
-
-Click to expand the code:
+##### Code
 
 ```{r, eval = runComponent_Simulation}
 <<dgm_podar>>
 ```
 :::
 
-[^1]: The $\chi^2$AR(1), in a more general form, can have an intercept ($X_{t} = c + \phi X_{t-1} + a_t, \; \; a_t \sim \chi^2(\nu)$. Since the intercept was set to zero in the simulation study, we discussed a zero-intercept versionof this model ($c=0$) in the paper. See the Supplemental Materials for more details.
+[^1]: The $\chi^2$AR(1), in a more general form, can have an intercept ($X_{t} = c + \phi X_{t-1} + a_t, \quad a_t \sim \chi^2(\nu)$. Since the intercept was set to zero in the simulation study, we discussed a zero-intercept version of this model ($c=0$) in the paper. See the Supplemental Materials for more details.
 
 ### General DGM wrappers
 
-As explained in the paper, each model can be specified using two parameters (and "hyper-parameters" such as $c = 0$ for the $\chi^2$AR(1) model and $k$ for the BinAR(1) model. Thus, with two relevant parameters for each model, we may calculate the canonical model parameters and generate data.
-
-To make these calculations easier, we start by writing a function (`dgm_parameterizer`) that calculates all model-implied parameters of a DGM (specified using the `Model` argument) based on the provided parameters, and saves them in a list (`pa`). In case some required parameters are missing, default values are given (e.g., if the autoregressive parameter $\phi$ is not given, it is set to `phi = 0.2` by default)
-
-Then we use another list of model specification
-
-Furthermore, we
+Given that, in each model, two canonical parameters characterize the dynamic and marginal features of the generated time series, and given that we have analytic formulas that link the canonical parameters to the model-implied $\phi$, $\mu$, $\sigma^2$, and \$\\gamma\$, we use a function (`dgm_parameterizer`) to calculate canonical parameters from two given parameters, and make a complete list of parameters (called pa). This list also includes non-parameter variables, importantly, the time series length $T$ (saved in `pa$T`) and the random seed used in the `dgm_*` functions (saved in `pa$seed`). A wrapper function (`dgm_generator`) is used as an interface to all `dgm_*` functions, which first makes sure the given parameters are sufficient for data generation, makes a complete parameter list `pa` with the help of `dgm_parameterizer`, and passes `pa` to the respective DGM generating function.
 
 ::: panel-tabset
-## dgm_parameterizer: calculate model-implied parameters
+#### Parameter conversions
+
+The function `dgm_parameterizer` calculates canonical/model-implied parameters of a given DGM (specified using the `Model` argument) based on the parameters given to it as arguments, and saves them in a list of parameters (`pa`), which s returned by the function. The function makes sure that the set of parameters provided are sufficient to characterize the dynamic parameter of the model (i.e., the autoregression $\phi$) and at least one of the marginal parameters (importantly, the mean $\mu$) but giving default values to some parameters.
 
 ```{r, eval = runComponent_Simulation}
-<<load_packages>>
+<<dgm_parameterizer>>
 ```
 
-## dgm_generator: wrapper for DGM functions
+#### Wrapper around `dgm_*` functions
+
+The function `dgm_generator` gets a set of parameters (either as separate arguments, or a list of parameters, like the one returned by `dgm_parameterizer`), saves them in a list called `pa`. It checks whether $\phi$ is included in the list (if not, sets the default value `pa$phi = 0.2`), and checks if at least one other parameter (which, together with $\phi$, is required to characterize the marginal properties of the DGMs) is calculated for it (if not, it sets the default value `pa$Mean = 5` for $\mu$). Furthermore, if the DGM name, time series length, and the random seed are not provided, it gives them default values (respectively: `Model = "ChiAR(1)"`, `T = 100`, and `seed = 0`) and adds them to `pa`.
+
+Then, it passes the `pa` list to `dgm_parameterizer` to do the necessary conversions to complete the list of canonical and model-implied parameters. Finally, given the model name, it checks if non-canonical parameters $k$ and $c$ are set (otherwise assigns appropriate defaults to them), and passes the complete parameter list to the respective DGM function.
 
 ```{r, eval = runComponent_Simulation}
 <<dgm_generator>>
@@ -256,6 +268,18 @@ Furthermore, we
 :::
 
 ### Dataset generation
+
+The machinery described above can be used to generate individual ($N=1$) time series. However, for the simulation study, we need datasets comprising of multiple ($N=25, 50, 100$) individuals. As we discussed in the paper, in our study, all individuals in a dataset of a DGM share the same autoregressive parameter ($\phi_i=0.4$) and the individual differences are only in the individual means ($\mu_i$). Thus, we write a function (`dgm_make.sample`) that can generate, for each DGM, a dataset of $N$ individuals based on an $N$-dimensional vector of individual means. Then, with a wrapper function (`make_datasets`), we generate datasets
+
+```{r, eval = runComponent_Simulation}
+<<dgm_make.sample>>
+```
+
+## The *Analysis* component
+
+## The *Harvesting* component
+
+## The *Reporting* component
 
 # Pipeline {#sec-pipeline}
 

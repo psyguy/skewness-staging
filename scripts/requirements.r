@@ -5,6 +5,7 @@ libs_used <-
     "knitr",
     "MplusAutomation",
     "doSNOW",
+    "doFuture",
     "here",
     "primes")
 

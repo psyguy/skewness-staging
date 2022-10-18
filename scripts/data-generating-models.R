@@ -414,20 +414,26 @@ dgm_parameterizer <- function(...){
       pa$Mean <- pa$c / (1 - pa$phi)
     }
 
-    ## if within-person (marginal) variance is given
-    if (!is.null(pa$Mean) & !is.null(pa$var.marginal)) {
-      # from the marginal variance formula
-      pa$var.resid <- pa$var.marginal * (1 - pa$phi ^ 2)
-    }
-    ## if the marginal variance is not given, we get it from residual variance
-    else{
-      # set residual variance to one, if already not defined
-      if(is.null(pa$var.resid)) pa$var.resid <- 1
+    ## Now we certainly have the mean calculated
+
+    ## The within-person (marginal) variance is more interpretable. So
+    ## we always calculate the residual variance based on the marginal
+    ## variance, unless var.resid is known BUT var.marginal is NOT.
+    if (!is.null(pa$var.resid) & is.null(pa$var.marginal)) {
       # from the marginal variance formula
       pa$var.marginal <- pa$var.resid / (1 - pa$phi ^ 2)
     }
+    ## If none of them are known we first give var.marginal a default
+    ## value and calculate var.resid based on that.
+    if (is.null(pa$var.resid) & is.null(pa$var.marginal)) {
+      # we set a default value for the marginal variance
+      pa$var.marginal <- 4
+    }
+    ## Then, we calculate var.resid (again) with var.marginal to make
+    ## sure that the marginal variance had been given more importance
+    pa$var.resid <- pa$var.marginal * (1 - pa$phi ^ 2)
 
-    ## returning the parameter list
+    ## Returning the parameter list
     return(pa)
 
   }
@@ -670,8 +676,211 @@ dgm_parameterizer <- function(...){
 
 }
 
+## @knitr dgm_generator
 
+dgm_generator <- function(...){
+
+  pa <- list(...)
+
+  if(is.list(pa$pa)) pa <- pa$pa
+
+  ## setting default seed if not given
+  if(is.null(pa$Model)) pa$Model <- "ChiAR(1)"
+  if(is.null(pa$phi)) pa$phi <- 0.2
+  # if no model parameter is given, then mean is set to a default 5
+  if (is.null(pa$Mean) &
+      is.null(pa$Skewness) &
+      is.null(pa$c) &
+      is.null(pa$nu) &
+      is.null(pa$alpha) &
+      is.null(pa$beta) &
+      is.null(pa$theta)
+  ) pa$Mean <- 5
+  # if(is.null(pa$Mean)) pa$Variance <- 10
+  # if(is.null(pa$Skewness)) pa$Skewness <- 3
+  if(is.null(pa$T)) pa$T <- 100
+  if(is.null(pa$seed)) pa$seed <- 0
+
+  if(is.null(pa$only.ts)) pa$only.ts <- FALSE
+
+  ## If you set `pa$only.ts` parameter as TRUE, the dgm_ functions produce only
+  ## the raw time series (a single numeric vector) which is way lighter and way
+  ## faster:
+
+  # pa$only.ts <- TRUE
+
+
+  ## calculating model parameters
+  pa <- dgm_parameterizer(pa = pa)
+
+  ### making models
+
+  ## %%%%%%%%%%%%
+  ## NAR(1)
+  ## %%%%%%%%%%%%
+  if(tolower(pa$Model) == "nar(1)" | tolower(pa$Model) == "nar"){
+    # default maximum scale value
+    if(is.null(pa$k)) pa$k <- 100
+    ## %% Generating the data
+    o <- dgm_nar(pa = pa)
+  }
+
+  ## %%%%%%%%%%%%
+  ## ChiAR(1)
+  ## %%%%%%%%%%%%
+  if(tolower(pa$Model) == "chiar(1)" | tolower(pa$Model) == "chiar" |
+     tolower(pa$Model) == "chi2ar(1)" | tolower(pa$Model) == "chi2ar"){
+    # default maximum scale value
+    if(is.null(pa$k)) pa$k <- 100
+    ## %% Generating the data
+    o <- dgm_chiar(pa = pa)
+  }
+
+  ## %%%%%%%%%%%%
+  ## BinAR(1)
+  ## %%%%%%%%%%%%
+  if(tolower(pa$Model) == "binar(1)" | tolower(pa$Model) == "binar"){
+    # default maximum scale value
+    if(is.null(pa$k)) pa$k <- 10
+    ## %% Generating the data
+    o <- dgm_binar(pa = pa)
+  }
+
+  ## %%%%%%%%%%%%
+  ## DAR(1)
+  ## %%%%%%%%%%%%
+  if(tolower(pa$Model) == "dar(1)" | tolower(pa$Model) == "dar"){
+    # default maximum scale value
+    if(is.null(pa$k)) pa$k <- 10
+    ## %% Generating the data
+    o <- dgm_dar(pa = pa)
+  }
+
+  ## %%%%%%%%%%%%
+  ## PoDAR(1)
+  ## %%%%%%%%%%%%
+  if(tolower(pa$Model) == "podar(1)" | tolower(pa$Model) == "podar"){
+    # default maximum scale value
+    if(is.null(pa$k)) pa$k <- 100
+    ## %% Generating the data
+    o <- dgm_podar(pa = pa)
+  }
+
+  ## Also allow a data frame output
+  # if(!is.null(p$as.dataframe) & p$as.dataframe){
+  #
+  # }
+
+  return(o)
+}
 
 
 # Dataset generation ------------------------------------------------------
 
+## @knitr dgm_make.sample
+
+dgm_make.sample <- function(Model = "ChiAR(1)",
+                            Means = rnorm(100, 5, 3),
+                            T = 100,
+                            phi = 0.4,
+                            seeds = NULL
+){
+
+  N <- length(Means)
+  df <- data.frame(subject = rep(1:N, each = T),
+                   t = rep(1:T, times = N),
+                   x = rep(NA, N*T))
+  if(is.null(seeds)) seeds <- 1000*N*Means
+  if(length(seeds)<=1) seeds <- seeds + 1000*N*Means
+
+  for(s in 1:N){
+    x <- dgm_generator(
+      Model = Model,
+      only.ts = TRUE,
+      T = T,
+      phi = phi,
+      Mean = Means[s],
+      # Skewness = Skewness,
+      seed = seeds[s])
+
+    df$x[((s-1)*T + 1):(s*T)] <- x
+
+  }
+
+  return(df)
+}
+
+## @knitr make_datasets
+
+make_datasets <- function(Model = "DAR",
+                          T = 100,
+                          N = 100,
+                          phi = 0.4,
+                          l2.distribution = "Gaussian",
+                          seed = 0) {
+  # save global seed of the global env and set it back before leaving
+  seed.old <- .Random.seed
+  on.exit({
+    .Random.seed <<- seed.old
+  })
+  set.seed(seed)
+
+  if (tolower(Model) == "chiar" | tolower(Model) == "chi2ar") {
+    model.name <- "Chi2AR"
+    lev2.Mean <- 10
+    lev2.Variance <- 10
+    chi2.df <- 5
+  }
+  if (tolower(Model) == "binar") {
+    model.name <- "BinAR"
+    lev2.Mean <- 2
+    lev2.Variance <- 1
+    chi2.df <- 2.9
+  }
+  if (tolower(Model) == "dar") {
+    model.name <- "DAR"
+    lev2.Mean <- 2
+    lev2.Variance <- 1
+    chi2.df <- 2.9
+  }
+
+  if (tolower(Model) == "podar") {
+    model.name <- "PoDAR"
+    lev2.Mean <- 4
+    lev2.Variance <- 4
+    chi2.df <- 1.5
+  }
+
+  if (tolower(Model) == "nar") {
+    model.name <- "NAR"
+    lev2.Mean <- 50
+    lev2.Variance <- 4
+    chi2.df <- 2
+  }
+
+  # sampling within-person mean from level 2 distribution
+  if (l2.distribution == "Gaussian")
+    Means <- rnorm(2 * N, lev2.Mean, sqrt(lev2.Variance))
+  if (l2.distribution == "Chi2")
+    Means <- rchisq(2 * N, chi2.df)
+
+  # removing out-of-bounds means
+  Means[Means < 0] <- NA
+  Means[Means > 100] <- NA
+  if (model.name == "BinAR" |
+      model.name == "DAR")
+    Means[Means > 10] <- NA
+
+  # keeping N samples from the in-bound means
+  Means <- Means %>% na.omit() %>% sample(N)
+
+
+  sample_df <- dgm_make.sample(
+    Model = Model,
+    Means = Means,
+    T = T,
+    phi = phi,
+    seeds = NULL
+  )
+  return(sample_df)
+}
