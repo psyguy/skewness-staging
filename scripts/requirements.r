@@ -7,6 +7,11 @@ libs_used <-
     "doSNOW",
     "doFuture",
     "here",
+    "latex2exp",
+    "cowplot",
+    "glue",
+    "patchwork",
+    "ggExtra",
     "primes")
 
 libs_needed <- libs_used[!libs_used %in% installed.packages()]

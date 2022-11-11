@@ -6,7 +6,7 @@ format:
   html:
     code-fold: true
     code-tools: true
-    code-overflow: wrap
+    code-overflow: scroll
     code-line-numbers: true
     toc: true
     toc-location: left
@@ -23,14 +23,15 @@ format:
     number-depth: 8
     toc: true
     toc-depth: 8
-# For html
+## For html
 execute:
   enabled: true
   echo: true
   include: true
   warning: false
   error: false
-# For pdf
+#  freeze: true
+## For pdf
 # execute:
 #   enabled: true
 #   echo: false
@@ -87,8 +88,9 @@ In case you want to change the scripts (e.g., to run a smaller portion of the si
 #| echo: false
 #| include: false
 #| eval: true
+
 scripts <- list.files(path = "scripts/",
-                      pattern = ".r",
+                      pattern = ".r|.R",
                       full.names = TRUE)
 
 sapply(scripts, knitr::read_chunk)
@@ -101,6 +103,7 @@ library(knitr)
 
 ```{r, eval = runComponent_Initialization}
 #| include: false
+#| eval: true
 <<load_packages>>
 ```
 
@@ -108,12 +111,11 @@ library(knitr)
 
 ## The *Simulation* component
 
-The Simulation component consists of four sets of functions:
+The Simulation component consists of three sets of functions:
 
 i.  Functions that implement the DGMs and generate univariate ($N=1$) time series of length $T$ from the parameters given to them;
 ii. Wrappers that interface the DGM functions;
-iii. A function that
-iv. A wrapper to generate datasets (consisting on $N$ time series of length $T$)
+iii. A wrapper to generate datasets (consisting on $N$ time series of length $T$) with a given DGM
 
 ### Data-generating models specifications
 
@@ -245,7 +247,7 @@ $$
 
 ### General DGM wrappers
 
-Given that, in each model, two canonical parameters characterize the dynamic and marginal features of the generated time series, and given that we have analytic formulas that link the canonical parameters to the model-implied $\phi$, $\mu$, $\sigma^2$, and \$\\gamma\$, we use a function (`dgm_parameterizer`) to calculate canonical parameters from two given parameters, and make a complete list of parameters (called pa). This list also includes non-parameter variables, importantly, the time series length $T$ (saved in `pa$T`) and the random seed used in the `dgm_*` functions (saved in `pa$seed`). A wrapper function (`dgm_generator`) is used as an interface to all `dgm_*` functions, which first makes sure the given parameters are sufficient for data generation, makes a complete parameter list `pa` with the help of `dgm_parameterizer`, and passes `pa` to the respective DGM generating function.
+Given that, in each model, two canonical parameters characterize the dynamic and marginal features of the generated time series, and given that we have analytic formulas that link the canonical parameters to the model-implied $\phi$, $\mu$, $\sigma^2$, and $\gamma$, we use a function (`dgm_parameterizer`) to calculate canonical parameters from two given parameters, and make a complete list of parameters (called `pa`). This list also includes non-parameter variables, importantly, the time series length $T$ (saved in `pa$T`) and the random seed used in the `dgm_*` functions (saved in `pa$seed`). A wrapper function (`dgm_generator`) is used as an interface to all `dgm_*` functions, which first makes sure the given parameters are sufficient for data generation, makes a complete parameter list `pa` with the help of `dgm_parameterizer`, and passes `pa` to the respective DGM generating function.
 
 ::: panel-tabset
 #### Parameter conversions
@@ -269,13 +271,92 @@ Then, it passes the `pa` list to `dgm_parameterizer` to do the necessary convers
 
 ### Dataset generation
 
-The machinery described above can be used to generate individual ($N=1$) time series. However, for the simulation study, we need datasets comprising of multiple ($N=25, 50, 100$) individuals. As we discussed in the paper, in our study, all individuals in a dataset of a DGM share the same autoregressive parameter ($\phi_i=0.4$) and the individual differences are only in the individual means ($\mu_i$). Thus, we write a function (`dgm_make.sample`) that can generate, for each DGM, a dataset of $N$ individuals based on an $N$-dimensional vector of individual means. Then, with a wrapper function (`make_datasets`), we generate datasets
+The machinery described above can be used to generate individual ($N=1$) time series. However, for the simulation study, we need datasets comprising of multiple ($N=25, 50, 100$) individuals. As we discussed in the paper, in our study, all individuals in a dataset of a DGM share the same autoregressive parameter ($\phi_i=0.4$) and the individual differences are only in the individual means ($\mathbb{\mu} = [\mu_1 , \mu_2, \dots, \mu_N]$). Thus, we write a function (`dgm_make.sample`) that can generate, for each DGM, a dataset of $N$ individuals based on an $N$-dimensional vector of individual means, all with the same $\phi_i$. We then need to find the appropriate parameters for the level-2 distributions (Gaussian and $\chi^2$ distributions) for each DGM, such that the we get a considerable proportion of individuals with considerably high skewness while respecting the lower and upper bounds of values supported by each model. Finally, with a wrapper function (`make_datasets`), we facilitate making dataset by automatically generating the means vector suitable for each DGM.
+
+::: panel-tabset
+#### Making individual datasets
+
+The function `dgm_make.sample` generates a dataset of time series of length `T` with the autoregressive parameter `phi` from a desired DGM (determined by the `Model` argument) given a vector of means (passed as the argument `Means`). The length of `Means` determine the number of individuals in the dataset (`N <- length(Means)`). If `Means` is not provided, a randomly generated vector of $N = 100$ is used as default. Since each individual time series is generated with a random seed, we need a vector of `N` unique seeds, which can be provided using the `seeds` argument. In case `seeds` is not provided, it is generated based on the provided means (`seeds.from.means`), and if it is a scalar, the seeds vector is created by adding the scalar to the `seeds.from.means` (which would allow generating different datasets with the same mean distributions).
 
 ```{r, eval = runComponent_Simulation}
 <<dgm_make.sample>>
 ```
 
+#### Determining level-2 distribution parameters
+
+To ensure that the distribution parameters of the
+
+For each alternative DGM---the $\chi^2$AR(1), BinAR(1), and PoDAR(1) models---we should determine appropriate parameters for the level-2 distribution of means such that we have enough skewness in the generated datasets. To do so, we make a function (`Mean.vs.Skewness`) to help us experiment with different values for $\mu$ and $\sigma^2$ (of the Gaussian level-2 distribution) and $\nu$ (of the $\chi^2$ level-2 distribution) for each alternative DGM. Note that we start by generating more than enough samples for each distribution ($10 \times N$) and subsample $N$ values after applying the model-specific lower and upper bounds.
+
+```{r}
+#| eval: true
+<<Mean.vs.Skewness>>
+```
+
+We notice that we get the desired distribution of skewness with the following parameters:
+
+| Model         | $\mu$ | $\sigma^2$ | $\nu$ |
+|---------------|-------|------------|-------|
+| $\chi^2$AR(1) | 10    | 10         | 5     |
+| BinAR(1)      | 2     | 1          | 2.9   |
+| PoDAR(1)      | 4     | 4          | 1.5   |
+
+: Parameters of level-2 distribution of means
+
+Giving us the following distributions:
+
+```{r}
+#| eval: true
+#| echo: false
+#| include: false
+
+
+gaussian.means <-
+  wrap_elements(Mean.vs.Skewness("Chi2AR",
+     l2.mean = 10,
+     l2.var = 10,
+     seed = 1)) /
+  wrap_elements(Mean.vs.Skewness("BinAR",
+     l2.mean = 2,
+     l2.var = 1,
+     seed = 4)) /
+  wrap_elements(Mean.vs.Skewness("PoDAR",
+                   l2.mean = 4,
+     seed = 2))
+
+chi2.means <-
+  wrap_elements(Mean.vs.Skewness("Chi2AR",
+     chi2.df = 5,
+     seed = 1)) /
+  wrap_elements(Mean.vs.Skewness("BinAR",
+     chi2.df = 2.9,
+     seed = 1)) /
+  wrap_elements(Mean.vs.Skewness("PoDAR",
+                   chi2.df = 1.5,
+     seed = 4))
+
+ggsave("Mean_vs_Skewness.png",
+       wrap_elements(gaussian.means) +
+       wrap_elements(chi2.means),
+       width = 40,
+       height = 60,
+       units = "cm")
+```
+
+![](Mean_vs_Skewness.png)
+
+#### Automate dataset generation
+
+We then use a wrapper (`make_datasets`) around `dgm_make.sample` that generates datasets for all four DGMs with the appropriate level-2 parameters specified above. Note that here we first generate more than enough (i.e., $2 \times N$) samples of means to make sure we end up with $N$ samples after applying the upper and lower bounds.
+
+```{r, eval = runComponent_Simulation}
+<<make_datasets>>
+```
+:::
+
 ## The *Analysis* component
+
+In this component we
 
 ## The *Harvesting* component
 

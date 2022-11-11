@@ -787,11 +787,14 @@ dgm_make.sample <- function(Model = "ChiAR(1)",
 ){
 
   N <- length(Means)
+  seeds.from.means <- 1000*N*Means
+
+  if(is.null(seeds)) seeds <- seeds.from.means
+  if(length(seeds)<=1) seeds <- seeds + seeds.from.means
+
   df <- data.frame(subject = rep(1:N, each = T),
                    t = rep(1:T, times = N),
                    x = rep(NA, N*T))
-  if(is.null(seeds)) seeds <- 1000*N*Means
-  if(length(seeds)<=1) seeds <- seeds + 1000*N*Means
 
   for(s in 1:N){
     x <- dgm_generator(
@@ -800,14 +803,111 @@ dgm_make.sample <- function(Model = "ChiAR(1)",
       T = T,
       phi = phi,
       Mean = Means[s],
-      # Skewness = Skewness,
       seed = seeds[s])
 
     df$x[((s-1)*T + 1):(s*T)] <- x
-
   }
 
   return(df)
+}
+
+## @knitr Mean.vs.Skewness
+
+Mean.vs.Skewness <- function(Model = "Chi2AR",
+                             l2.mean = 50,
+                             l2.var = 20,
+                             chi2.df = NULL,
+                             phi = 0.4,
+                             N = 100,
+                             k = 10,
+                             seed = 1){
+
+
+  # Making a vector of means with size 10*N
+  set.seed(seed)
+
+  if(is.null(chi2.df)){
+    Mean <- rnorm(10 * N, l2.mean, sqrt(l2.var))
+    title.dist <- glue("$\\mu_i \\sim N$({l2.mean}, {l2.var})")
+  }else{
+    Mean <- rchisq(10 * N, chi2.df)
+    title.dist <- glue("$\\mu_i \\sim \\chi^2$({chi2.df})")
+  }
+
+  # Calculating skewness and setting bounds per DGM
+
+  if (tolower(Model) == "chiar" | tolower(Model) == "chi2ar") {
+    model.name <- "$\\chi^2$AR(1)"
+    lower_bound <- 0
+    upper_bound <- 100
+    # set intercept to 0
+    c <- 0
+    # then from the mean formula
+    nu <- Mean * (1 - phi) - c
+    # from the skewness formula
+    Skewness <-
+      2 * (1 - phi ^ 2) ^ 1.5 / (sqrt(abs(nu) / 2) * (1 - phi ^ 3))
+  }
+
+  if (tolower(Model) == "binar") {
+    model.name <- "BinAR(1)"
+    lower_bound <- 0
+    upper_bound <- k
+    # from skewness formula: mean = k*theta
+    theta <- Mean / k
+    # we then calculate skewness based on theta
+    Skewness <- (1 - 2 * theta) / sqrt(abs(k * theta * (1 - theta)))
+  }
+
+  if (tolower(Model) == "podar") {
+    model.name <- "PoDAR(1)"
+    lower_bound <- 0
+    upper_bound <- 100
+    # from the mean formula
+    lambda <- Mean
+    # from the skewness formula
+    Skewness <- lambda^(-0.5)
+  }
+
+  # Making a dataframe, removing out of bound samples, and resampling
+
+  d <- data.frame(Mean = Mean,
+                  Skewness = Skewness) %>%
+    filter(Mean > lower_bound & Mean < upper_bound) %>%
+    slice_sample(n = N)
+
+  title <- paste(model.name,
+                 "with",
+                 title.dist)
+
+  # Making the plot
+
+  p <- ggplot(d, aes(x = Mean, y = Skewness)) +
+    geom_point(alpha = 0.4) +
+    theme_light() +
+    labs(title = TeX(title)) +
+    ylim(min(0, min(Skewness)), max(1.5, max(Skewness))) +
+    geom_hline(
+      yintercept = c(-1, -0.5, 0.5, 1),
+      colour = "yellowgreen",
+      linetype = "dashed",
+      size = rel(1)
+    ) +
+    geom_hline(
+      yintercept = 0,
+      colour = "black",
+      linetype = "solid",
+      size = rel(0.5)
+    ) +
+    theme(aspect.ratio = 1,
+          title = element_text(size = rel(2))) +
+    ggtitle(TeX(title))
+
+  ggExtra::ggMarginal(p,
+                      type = 'density',
+                      margins = 'both',
+                      size = 4.5)
+
 }
 
 ## @knitr make_datasets
@@ -817,28 +917,36 @@ make_datasets <- function(Model = "DAR",
                           N = 100,
                           phi = 0.4,
                           l2.distribution = "Gaussian",
-                          seed = 0) {
+                          uSeed = 0) {
   # save global seed of the global env and set it back before leaving
   seed.old <- .Random.seed
   on.exit({
     .Random.seed <<- seed.old
   })
-  set.seed(seed)
+  set.seed(uSeed)
+
+  if (tolower(Model) == "nar") {
+    model.name <- "NAR"
+    lower_bound <- 0
+    upper_bound <- 100
+    lev2.Mean <- 50
+    lev2.Variance <- 4
+    chi2.df <- 2
+  }
 
   if (tolower(Model) == "chiar" | tolower(Model) == "chi2ar") {
     model.name <- "Chi2AR"
+    lower_bound <- 0
+    upper_bound <- 100
     lev2.Mean <- 10
     lev2.Variance <- 10
     chi2.df <- 5
   }
+
   if (tolower(Model) == "binar") {
     model.name <- "BinAR"
-    lev2.Mean <- 2
-    lev2.Variance <- 1
-    chi2.df <- 2.9
-  }
-  if (tolower(Model) == "dar") {
-    model.name <- "DAR"
+    lower_bound <- 0
+    upper_bound <- k
     lev2.Mean <- 2
     lev2.Variance <- 1
     chi2.df <- 2.9
@@ -846,16 +954,11 @@ make_datasets <- function(Model = "DAR",
 
   if (tolower(Model) == "podar") {
     model.name <- "PoDAR"
+    lower_bound <- 0
+    upper_bound <- 100
     lev2.Mean <- 4
     lev2.Variance <- 4
     chi2.df <- 1.5
-  }
-
-  if (tolower(Model) == "nar") {
-    model.name <- "NAR"
-    lev2.Mean <- 50
-    lev2.Variance <- 4
-    chi2.df <- 2
   }
 
   # sampling within-person mean from level 2 distribution
@@ -865,16 +968,13 @@ make_datasets <- function(Model = "DAR",
     Means <- rchisq(2 * N, chi2.df)
 
   # removing out-of-bounds means
-  Means[Means < 0] <- NA
-  Means[Means > 100] <- NA
-  if (model.name == "BinAR" |
-      model.name == "DAR")
-    Means[Means > 10] <- NA
+  Means[Means < lower_bound] <- NA
+  Means[Means > upper_bound] <- NA
 
   # keeping N samples from the in-bound means
   Means <- Means %>% na.omit() %>% sample(N)
 
-
+  # Making a dataframe using dgm_make.sample
   sample_df <- dgm_make.sample(
     Model = Model,
     Means = Means,
@@ -882,5 +982,6 @@ make_datasets <- function(Model = "DAR",
     phi = phi,
     seeds = NULL
   )
+
   return(sample_df)
 }

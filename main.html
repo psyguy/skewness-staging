@@ -215,12 +215,11 @@ Bien, Jacob. 2016. <span>“The Simulator: An Engine to Streamline Simulations.�
 <h1>Core components</h1>
 <section id="the-simulation-component" class="level2">
 <h2 class="anchored" data-anchor-id="the-simulation-component">The <em>Simulation</em> component</h2>
-<p>The Simulation component consists of four sets of functions:</p>
+<p>The Simulation component consists of three sets of functions:</p>
 <ol type="i">
 <li>Functions that implement the DGMs and generate univariate (<span class="math inline">\(N=1\)</span>) time series of length <span class="math inline">\(T\)</span> from the parameters given to them;</li>
 <li>Wrappers that interface the DGM functions;</li>
-<li>A function that</li>
-<li>A wrapper to generate datasets (consisting on <span class="math inline">\(N\)</span> time series of length <span class="math inline">\(T\)</span>)</li>
+<li>A wrapper to generate datasets (consisting on <span class="math inline">\(N\)</span> time series of length <span class="math inline">\(T\)</span>) with a given DGM</li>
 </ol>
 <section id="data-generating-models-specifications" class="level3">
 <h3 class="anchored" data-anchor-id="data-generating-models-specifications">Data-generating models specifications</h3>
@@ -711,7 +710,7 @@ X_t &amp;= P_t X_{t-1} + (1-P_t) Z_t
 </section>
 <section id="general-dgm-wrappers" class="level3">
 <h3 class="anchored" data-anchor-id="general-dgm-wrappers">General DGM wrappers</h3>
-<p>Given that, in each model, two canonical parameters characterize the dynamic and marginal features of the generated time series, and given that we have analytic formulas that link the canonical parameters to the model-implied <span class="math inline">\(\phi\)</span>, <span class="math inline">\(\mu\)</span>, <span class="math inline">\(\sigma^2\)</span>, and $\gamma$, we use a function (<code>dgm_parameterizer</code>) to calculate canonical parameters from two given parameters, and make a complete list of parameters (called pa). This list also includes non-parameter variables, importantly, the time series length <span class="math inline">\(T\)</span> (saved in <code>pa$T</code>) and the random seed used in the <code>dgm_*</code> functions (saved in <code>pa$seed</code>). A wrapper function (<code>dgm_generator</code>) is used as an interface to all <code>dgm_*</code> functions, which first makes sure the given parameters are sufficient for data generation, makes a complete parameter list <code>pa</code> with the help of <code>dgm_parameterizer</code>, and passes <code>pa</code> to the respective DGM generating function.</p>
+<p>Given that, in each model, two canonical parameters characterize the dynamic and marginal features of the generated time series, and given that we have analytic formulas that link the canonical parameters to the model-implied <span class="math inline">\(\phi\)</span>, <span class="math inline">\(\mu\)</span>, <span class="math inline">\(\sigma^2\)</span>, and <span class="math inline">\(\gamma\)</span>, we use a function (<code>dgm_parameterizer</code>) to calculate canonical parameters from two given parameters, and make a complete list of parameters (called <code>pa</code>). This list also includes non-parameter variables, importantly, the time series length <span class="math inline">\(T\)</span> (saved in <code>pa$T</code>) and the random seed used in the <code>dgm_*</code> functions (saved in <code>pa$seed</code>). A wrapper function (<code>dgm_generator</code>) is used as an interface to all <code>dgm_*</code> functions, which first makes sure the given parameters are sufficient for data generation, makes a complete parameter list <code>pa</code> with the help of <code>dgm_parameterizer</code>, and passes <code>pa</code> to the respective DGM generating function.</p>
 <div class="panel-tabset">
 <ul class="nav nav-tabs" role="tablist"><li class="nav-item" role="presentation"><a class="nav-link active" id="tabset-2-1-tab" data-bs-toggle="tab" data-bs-target="#tabset-2-1" role="tab" aria-controls="tabset-2-1" aria-selected="true" href="">Parameter conversions</a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-2-2-tab" data-bs-toggle="tab" data-bs-target="#tabset-2-2" role="tab" aria-controls="tabset-2-2" aria-selected="false" href="">Wrapper around <code>dgm_*</code> functions</a></li></ul>
 <div class="tab-content">
@@ -1126,7 +1125,12 @@ X_t &amp;= P_t X_{t-1} + (1-P_t) Z_t
 </section>
 <section id="dataset-generation" class="level3">
 <h3 class="anchored" data-anchor-id="dataset-generation">Dataset generation</h3>
-<p>The machinery described above can be used to generate individual (<span class="math inline">\(N=1\)</span>) time series. However, for the simulation study, we need datasets comprising of multiple (<span class="math inline">\(N=25, 50, 100\)</span>) individuals. As we discussed in the paper, in our study, all individuals in a dataset of a DGM share the same autoregressive parameter (<span class="math inline">\(\phi_i=0.4\)</span>) and the individual differences are only in the individual means (<span class="math inline">\(\mu_i\)</span>). Thus, we write a function (<code>dgm_make.sample</code>) that can generate, for each DGM, a dataset of <span class="math inline">\(N\)</span> individuals based on an <span class="math inline">\(N\)</span>-dimensional vector of individual means. Then, with a wrapper function (<code>make_datasets</code>), we generate datasets</p>
+<p>The machinery described above can be used to generate individual (<span class="math inline">\(N=1\)</span>) time series. However, for the simulation study, we need datasets comprising of multiple (<span class="math inline">\(N=25, 50, 100\)</span>) individuals. As we discussed in the paper, in our study, all individuals in a dataset of a DGM share the same autoregressive parameter (<span class="math inline">\(\phi_i=0.4\)</span>) and the individual differences are only in the individual means (<span class="math inline">\(\mathbb{\mu} = [\mu_1 , \mu_2, \dots, \mu_N]\)</span>). Thus, we write a function (<code>dgm_make.sample</code>) that can generate, for each DGM, a dataset of <span class="math inline">\(N\)</span> individuals based on an <span class="math inline">\(N\)</span>-dimensional vector of individual means, all with the same <span class="math inline">\(\phi_i\)</span>. We then need to find the appropriate parameters for the level-2 distributions (Gaussian and <span class="math inline">\(\chi^2\)</span> distributions) for each DGM, such that the we get a considerable proportion of individuals with considerably high skewness while respecting the lower and upper bounds of values supported by each model. Finally, with a wrapper function (<code>make_datasets</code>), we facilitate making dataset by automatically generating the means vector suitable for each DGM.</p>
+<div class="panel-tabset">
+<ul class="nav nav-tabs" role="tablist"><li class="nav-item" role="presentation"><a class="nav-link active" id="tabset-3-1-tab" data-bs-toggle="tab" data-bs-target="#tabset-3-1" role="tab" aria-controls="tabset-3-1" aria-selected="true" href="">Making individual datasets</a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-3-2-tab" data-bs-toggle="tab" data-bs-target="#tabset-3-2" role="tab" aria-controls="tabset-3-2" aria-selected="false" href="">Determining level-2 distribution parameters</a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-3-3-tab" data-bs-toggle="tab" data-bs-target="#tabset-3-3" role="tab" aria-controls="tabset-3-3" aria-selected="false" href="">Automate dataset generation</a></li></ul>
+<div class="tab-content">
+<div id="tabset-3-1" class="tab-pane active" role="tabpanel" aria-labelledby="tabset-3-1-tab">
+<p>The function <code>dgm_make.sample</code> generates a dataset of time series of length <code>T</code> with the autoregressive parameter <code>phi</code> from a desired DGM (determined by the <code>Model</code> argument) given a vector of means (passed as the argument <code>Means</code>). The length of <code>Means</code> determine the number of individuals in the dataset (<code>N &lt;- length(Means)</code>). If <code>Means</code> is not provided, a randomly generated vector of <span class="math inline">\(N = 100\)</span> is used as default. Since each individual time series is generated with a random seed, we need a vector of <code>N</code> unique seeds, which can be provided using the <code>seeds</code> argument. In case <code>seeds</code> is not provided, it is generated based on the provided means (<code>seeds.from.means</code>), and if it is a scalar, the seeds vector is created by adding the scalar to the <code>seeds.from.means</code> (which would allow generating different datasets with the same mean distributions).</p>
 <div class="cell">
 <details>
 <summary>Click to expand the code</summary>
@@ -1138,34 +1142,259 @@ X_t &amp;= P_t X_{t-1} + (1-P_t) Z_t
 <span id="cb8-6"><a href="#cb8-6"></a>){</span>
 <span id="cb8-7"><a href="#cb8-7"></a></span>
 <span id="cb8-8"><a href="#cb8-8"></a>  N <span class="ot">&lt;-</span> <span class="fu">length</span>(Means)</span>
-<span id="cb8-9"><a href="#cb8-9"></a>  df <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">subject =</span> <span class="fu">rep</span>(<span class="dv">1</span><span class="sc">:</span>N, <span class="at">each =</span> T),</span>
-<span id="cb8-10"><a href="#cb8-10"></a>                   <span class="at">t =</span> <span class="fu">rep</span>(<span class="dv">1</span><span class="sc">:</span>T, <span class="at">times =</span> N),</span>
-<span id="cb8-11"><a href="#cb8-11"></a>                   <span class="at">x =</span> <span class="fu">rep</span>(<span class="cn">NA</span>, N<span class="sc">*</span>T))</span>
-<span id="cb8-12"><a href="#cb8-12"></a>  <span class="cf">if</span>(<span class="fu">is.null</span>(seeds)) seeds <span class="ot">&lt;-</span> <span class="dv">1000</span><span class="sc">*</span>N<span class="sc">*</span>Means</span>
-<span id="cb8-13"><a href="#cb8-13"></a>  <span class="cf">if</span>(<span class="fu">length</span>(seeds)<span class="sc">&lt;=</span><span class="dv">1</span>) seeds <span class="ot">&lt;-</span> seeds <span class="sc">+</span> <span class="dv">1000</span><span class="sc">*</span>N<span class="sc">*</span>Means</span>
-<span id="cb8-14"><a href="#cb8-14"></a></span>
-<span id="cb8-15"><a href="#cb8-15"></a>  <span class="cf">for</span>(s <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span>N){</span>
-<span id="cb8-16"><a href="#cb8-16"></a>    x <span class="ot">&lt;-</span> <span class="fu">dgm_generator</span>(</span>
-<span id="cb8-17"><a href="#cb8-17"></a>      <span class="at">Model =</span> Model,</span>
-<span id="cb8-18"><a href="#cb8-18"></a>      <span class="at">only.ts =</span> <span class="cn">TRUE</span>,</span>
-<span id="cb8-19"><a href="#cb8-19"></a>      <span class="at">T =</span> T,</span>
-<span id="cb8-20"><a href="#cb8-20"></a>      <span class="at">phi =</span> phi,</span>
-<span id="cb8-21"><a href="#cb8-21"></a>      <span class="at">Mean =</span> Means[s],</span>
-<span id="cb8-22"><a href="#cb8-22"></a>      <span class="co"># Skewness = Skewness,</span></span>
-<span id="cb8-23"><a href="#cb8-23"></a>      <span class="at">seed =</span> seeds[s])</span>
-<span id="cb8-24"><a href="#cb8-24"></a></span>
-<span id="cb8-25"><a href="#cb8-25"></a>    df<span class="sc">$</span>x[((s<span class="dv">-1</span>)<span class="sc">*</span>T <span class="sc">+</span> <span class="dv">1</span>)<span class="sc">:</span>(s<span class="sc">*</span>T)] <span class="ot">&lt;-</span> x</span>
+<span id="cb8-9"><a href="#cb8-9"></a>  seeds.from.means <span class="ot">&lt;-</span> <span class="dv">1000</span><span class="sc">*</span>N<span class="sc">*</span>Means</span>
+<span id="cb8-10"><a href="#cb8-10"></a></span>
+<span id="cb8-11"><a href="#cb8-11"></a>  <span class="cf">if</span>(<span class="fu">is.null</span>(seeds)) seeds <span class="ot">&lt;-</span> seeds.from.means</span>
+<span id="cb8-12"><a href="#cb8-12"></a>  <span class="cf">if</span>(<span class="fu">length</span>(seeds)<span class="sc">&lt;=</span><span class="dv">1</span>) seeds <span class="ot">&lt;-</span> seeds <span class="sc">+</span> seeds.from.means</span>
+<span id="cb8-13"><a href="#cb8-13"></a></span>
+<span id="cb8-14"><a href="#cb8-14"></a>  df <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">subject =</span> <span class="fu">rep</span>(<span class="dv">1</span><span class="sc">:</span>N, <span class="at">each =</span> T),</span>
+<span id="cb8-15"><a href="#cb8-15"></a>                   <span class="at">t =</span> <span class="fu">rep</span>(<span class="dv">1</span><span class="sc">:</span>T, <span class="at">times =</span> N),</span>
+<span id="cb8-16"><a href="#cb8-16"></a>                   <span class="at">x =</span> <span class="fu">rep</span>(<span class="cn">NA</span>, N<span class="sc">*</span>T))</span>
+<span id="cb8-17"><a href="#cb8-17"></a></span>
+<span id="cb8-18"><a href="#cb8-18"></a>  <span class="cf">for</span>(s <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span>N){</span>
+<span id="cb8-19"><a href="#cb8-19"></a>    x <span class="ot">&lt;-</span> <span class="fu">dgm_generator</span>(</span>
+<span id="cb8-20"><a href="#cb8-20"></a>      <span class="at">Model =</span> Model,</span>
+<span id="cb8-21"><a href="#cb8-21"></a>      <span class="at">only.ts =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb8-22"><a href="#cb8-22"></a>      <span class="at">T =</span> T,</span>
+<span id="cb8-23"><a href="#cb8-23"></a>      <span class="at">phi =</span> phi,</span>
+<span id="cb8-24"><a href="#cb8-24"></a>      <span class="at">Mean =</span> Means[s],</span>
+<span id="cb8-25"><a href="#cb8-25"></a>      <span class="at">seed =</span> seeds[s])</span>
 <span id="cb8-26"><a href="#cb8-26"></a></span>
-<span id="cb8-27"><a href="#cb8-27"></a>  }</span>
-<span id="cb8-28"><a href="#cb8-28"></a></span>
-<span id="cb8-29"><a href="#cb8-29"></a>  <span class="fu">return</span>(df)</span>
-<span id="cb8-30"><a href="#cb8-30"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb8-27"><a href="#cb8-27"></a>    df<span class="sc">$</span>x[((s<span class="dv">-1</span>)<span class="sc">*</span>T <span class="sc">+</span> <span class="dv">1</span>)<span class="sc">:</span>(s<span class="sc">*</span>T)] <span class="ot">&lt;-</span> x</span>
+<span id="cb8-28"><a href="#cb8-28"></a>  }</span>
+<span id="cb8-29"><a href="#cb8-29"></a></span>
+<span id="cb8-30"><a href="#cb8-30"></a>  <span class="fu">return</span>(df)</span>
+<span id="cb8-31"><a href="#cb8-31"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
+</div>
+</div>
+<div id="tabset-3-2" class="tab-pane" role="tabpanel" aria-labelledby="tabset-3-2-tab">
+<p>To ensure that the distribution parameters of the</p>
+<p>For each alternative DGM—the <span class="math inline">\(\chi^2\)</span>AR(1), BinAR(1), and PoDAR(1) models—we should determine appropriate parameters for the level-2 distribution of means such that we have enough skewness in the generated datasets. To do so, we make a function (<code>Mean.vs.Skewness</code>) to help us experiment with different values for <span class="math inline">\(\mu\)</span> and <span class="math inline">\(\sigma^2\)</span> (of the Gaussian level-2 distribution) and <span class="math inline">\(\nu\)</span> (of the <span class="math inline">\(\chi^2\)</span> level-2 distribution) for each alternative DGM. Note that we start by generating more than enough samples for each distribution (<span class="math inline">\(10 \times N\)</span>) and subsample <span class="math inline">\(N\)</span> values after applying the model-specific lower and upper bounds.</p>
+<div class="cell">
+<details>
+<summary>Click to expand the code</summary>
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1"></a>Mean.vs.Skewness <span class="ot">&lt;-</span> <span class="cf">function</span>(<span class="at">Model =</span> <span class="st">"Chi2AR"</span>,</span>
+<span id="cb9-2"><a href="#cb9-2"></a>                             <span class="at">l2.mean =</span> <span class="dv">50</span>,</span>
+<span id="cb9-3"><a href="#cb9-3"></a>                             <span class="at">l2.var =</span> <span class="dv">20</span>,</span>
+<span id="cb9-4"><a href="#cb9-4"></a>                             <span class="at">chi2.df =</span> <span class="cn">NULL</span>,</span>
+<span id="cb9-5"><a href="#cb9-5"></a>                             <span class="at">phi =</span> <span class="fl">0.4</span>,</span>
+<span id="cb9-6"><a href="#cb9-6"></a>                             <span class="at">N =</span> <span class="dv">100</span>,</span>
+<span id="cb9-7"><a href="#cb9-7"></a>                             <span class="at">k =</span> <span class="dv">10</span>,</span>
+<span id="cb9-8"><a href="#cb9-8"></a>                             <span class="at">seed =</span> <span class="dv">1</span>){</span>
+<span id="cb9-9"><a href="#cb9-9"></a></span>
+<span id="cb9-10"><a href="#cb9-10"></a></span>
+<span id="cb9-11"><a href="#cb9-11"></a>  <span class="co"># Making a vector of means with size 10*N</span></span>
+<span id="cb9-12"><a href="#cb9-12"></a>  <span class="fu">set.seed</span>(seed)</span>
+<span id="cb9-13"><a href="#cb9-13"></a></span>
+<span id="cb9-14"><a href="#cb9-14"></a>  <span class="cf">if</span>(<span class="fu">is.null</span>(chi2.df)){</span>
+<span id="cb9-15"><a href="#cb9-15"></a>    Mean <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(<span class="dv">10</span> <span class="sc">*</span> N, l2.mean, <span class="fu">sqrt</span>(l2.var))</span>
+<span id="cb9-16"><a href="#cb9-16"></a>    title.dist <span class="ot">&lt;-</span> <span class="fu">glue</span>(<span class="st">"$</span><span class="sc">\\</span><span class="st">mu_i </span><span class="sc">\\</span><span class="st">sim N$({l2.mean}, {l2.var})"</span>)</span>
+<span id="cb9-17"><a href="#cb9-17"></a>  }<span class="cf">else</span>{</span>
+<span id="cb9-18"><a href="#cb9-18"></a>    Mean <span class="ot">&lt;-</span> <span class="fu">rchisq</span>(<span class="dv">10</span> <span class="sc">*</span> N, chi2.df)</span>
+<span id="cb9-19"><a href="#cb9-19"></a>    title.dist <span class="ot">&lt;-</span> <span class="fu">glue</span>(<span class="st">"$</span><span class="sc">\\</span><span class="st">mu_i </span><span class="sc">\\</span><span class="st">sim </span><span class="sc">\\</span><span class="st">chi^2$({chi2.df})"</span>)</span>
+<span id="cb9-20"><a href="#cb9-20"></a>  }</span>
+<span id="cb9-21"><a href="#cb9-21"></a></span>
+<span id="cb9-22"><a href="#cb9-22"></a>  <span class="co"># Calculating skewness and setting bounds per DGM</span></span>
+<span id="cb9-23"><a href="#cb9-23"></a></span>
+<span id="cb9-24"><a href="#cb9-24"></a>  <span class="cf">if</span> (<span class="fu">tolower</span>(Model) <span class="sc">==</span> <span class="st">"chiar"</span> <span class="sc">|</span> <span class="fu">tolower</span>(Model) <span class="sc">==</span> <span class="st">"chi2ar"</span>) {</span>
+<span id="cb9-25"><a href="#cb9-25"></a>    model.name <span class="ot">&lt;-</span> <span class="st">"$</span><span class="sc">\\</span><span class="st">chi^2$AR(1)"</span></span>
+<span id="cb9-26"><a href="#cb9-26"></a>    lower_bound <span class="ot">&lt;-</span> <span class="dv">0</span></span>
+<span id="cb9-27"><a href="#cb9-27"></a>    upper_bound <span class="ot">&lt;-</span> <span class="dv">100</span></span>
+<span id="cb9-28"><a href="#cb9-28"></a>    <span class="co"># set intercept to 0</span></span>
+<span id="cb9-29"><a href="#cb9-29"></a>    c <span class="ot">&lt;-</span> <span class="dv">0</span></span>
+<span id="cb9-30"><a href="#cb9-30"></a>    <span class="co"># then from the mean formula</span></span>
+<span id="cb9-31"><a href="#cb9-31"></a>    nu <span class="ot">&lt;-</span> Mean <span class="sc">*</span> (<span class="dv">1</span> <span class="sc">-</span> phi) <span class="sc">-</span> c</span>
+<span id="cb9-32"><a href="#cb9-32"></a>    <span class="co"># from the skewness formula</span></span>
+<span id="cb9-33"><a href="#cb9-33"></a>    Skewness <span class="ot">&lt;-</span></span>
+<span id="cb9-34"><a href="#cb9-34"></a>      <span class="dv">2</span> <span class="sc">*</span> (<span class="dv">1</span> <span class="sc">-</span> phi <span class="sc">^</span> <span class="dv">2</span>) <span class="sc">^</span> <span class="fl">1.5</span> <span class="sc">/</span> (<span class="fu">sqrt</span>(<span class="fu">abs</span>(nu) <span class="sc">/</span> <span class="dv">2</span>) <span class="sc">*</span> (<span class="dv">1</span> <span class="sc">-</span> phi <span class="sc">^</span> <span class="dv">3</span>))</span>
+<span id="cb9-35"><a href="#cb9-35"></a>  }</span>
+<span id="cb9-36"><a href="#cb9-36"></a></span>
+<span id="cb9-37"><a href="#cb9-37"></a>  <span class="cf">if</span> (<span class="fu">tolower</span>(Model) <span class="sc">==</span> <span class="st">"binar"</span>) {</span>
+<span id="cb9-38"><a href="#cb9-38"></a>    model.name <span class="ot">&lt;-</span> <span class="st">"BinAR(1)"</span></span>
+<span id="cb9-39"><a href="#cb9-39"></a>    lower_bound <span class="ot">&lt;-</span> <span class="dv">0</span></span>
+<span id="cb9-40"><a href="#cb9-40"></a>    upper_bound <span class="ot">&lt;-</span> k</span>
+<span id="cb9-41"><a href="#cb9-41"></a>    <span class="co"># from skewness formula: mean = k*theta</span></span>
+<span id="cb9-42"><a href="#cb9-42"></a>    theta <span class="ot">&lt;-</span> Mean <span class="sc">/</span> k</span>
+<span id="cb9-43"><a href="#cb9-43"></a>    <span class="co"># we then calculate skewness based on theta</span></span>
+<span id="cb9-44"><a href="#cb9-44"></a>    Skewness <span class="ot">&lt;-</span> (<span class="dv">1</span> <span class="sc">-</span> <span class="dv">2</span> <span class="sc">*</span> theta) <span class="sc">/</span> <span class="fu">sqrt</span>(<span class="fu">abs</span>(k <span class="sc">*</span> theta <span class="sc">*</span> (<span class="dv">1</span> <span class="sc">-</span> theta)))</span>
+<span id="cb9-45"><a href="#cb9-45"></a>  }</span>
+<span id="cb9-46"><a href="#cb9-46"></a></span>
+<span id="cb9-47"><a href="#cb9-47"></a>  <span class="cf">if</span> (<span class="fu">tolower</span>(Model) <span class="sc">==</span> <span class="st">"podar"</span>) {</span>
+<span id="cb9-48"><a href="#cb9-48"></a>    model.name <span class="ot">&lt;-</span> <span class="st">"PoDAR(1)"</span></span>
+<span id="cb9-49"><a href="#cb9-49"></a>    lower_bound <span class="ot">&lt;-</span> <span class="dv">0</span></span>
+<span id="cb9-50"><a href="#cb9-50"></a>    upper_bound <span class="ot">&lt;-</span> <span class="dv">100</span></span>
+<span id="cb9-51"><a href="#cb9-51"></a>    <span class="co"># from the mean formula</span></span>
+<span id="cb9-52"><a href="#cb9-52"></a>    lambda <span class="ot">&lt;-</span> Mean</span>
+<span id="cb9-53"><a href="#cb9-53"></a>    <span class="co"># from the skewness formula</span></span>
+<span id="cb9-54"><a href="#cb9-54"></a>    Skewness <span class="ot">&lt;-</span> lambda<span class="sc">^</span>(<span class="sc">-</span><span class="fl">0.5</span>)</span>
+<span id="cb9-55"><a href="#cb9-55"></a>  }</span>
+<span id="cb9-56"><a href="#cb9-56"></a></span>
+<span id="cb9-57"><a href="#cb9-57"></a>  <span class="co"># Making a dataframe, removing out of bound samples, and resampling</span></span>
+<span id="cb9-58"><a href="#cb9-58"></a></span>
+<span id="cb9-59"><a href="#cb9-59"></a>  d <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">Mean =</span> Mean,</span>
+<span id="cb9-60"><a href="#cb9-60"></a>                  <span class="at">Skewness =</span> Skewness) <span class="sc">%&gt;%</span></span>
+<span id="cb9-61"><a href="#cb9-61"></a>    <span class="fu">filter</span>(Mean <span class="sc">&gt;</span> lower_bound <span class="sc">&amp;</span> Mean <span class="sc">&lt;</span> upper_bound) <span class="sc">%&gt;%</span></span>
+<span id="cb9-62"><a href="#cb9-62"></a>    <span class="fu">slice_sample</span>(<span class="at">n =</span> N)</span>
+<span id="cb9-63"><a href="#cb9-63"></a></span>
+<span id="cb9-64"><a href="#cb9-64"></a>  title <span class="ot">&lt;-</span> <span class="fu">paste</span>(model.name,</span>
+<span id="cb9-65"><a href="#cb9-65"></a>                 <span class="st">"with"</span>,</span>
+<span id="cb9-66"><a href="#cb9-66"></a>                 title.dist)</span>
+<span id="cb9-67"><a href="#cb9-67"></a></span>
+<span id="cb9-68"><a href="#cb9-68"></a>  <span class="co"># Making the plot</span></span>
+<span id="cb9-69"><a href="#cb9-69"></a></span>
+<span id="cb9-70"><a href="#cb9-70"></a>  p <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(d, <span class="fu">aes</span>(<span class="at">x =</span> Mean, <span class="at">y =</span> Skewness)) <span class="sc">+</span></span>
+<span id="cb9-71"><a href="#cb9-71"></a>    <span class="fu">geom_point</span>(<span class="at">alpha =</span> <span class="fl">0.4</span>) <span class="sc">+</span></span>
+<span id="cb9-72"><a href="#cb9-72"></a>    <span class="fu">theme_light</span>() <span class="sc">+</span></span>
+<span id="cb9-73"><a href="#cb9-73"></a>    <span class="fu">labs</span>(<span class="at">title =</span> <span class="fu">TeX</span>(title)) <span class="sc">+</span></span>
+<span id="cb9-74"><a href="#cb9-74"></a>    <span class="fu">ylim</span>(<span class="fu">min</span>(<span class="dv">0</span>, <span class="fu">min</span>(Skewness)), <span class="fu">max</span>(<span class="fl">1.5</span>, <span class="fu">max</span>(Skewness))) <span class="sc">+</span></span>
+<span id="cb9-75"><a href="#cb9-75"></a>    <span class="fu">geom_hline</span>(</span>
+<span id="cb9-76"><a href="#cb9-76"></a>      <span class="at">yintercept =</span> <span class="fu">c</span>(<span class="sc">-</span><span class="dv">1</span>, <span class="sc">-</span><span class="fl">0.5</span>, <span class="fl">0.5</span>, <span class="dv">1</span>),</span>
+<span id="cb9-77"><a href="#cb9-77"></a>      <span class="at">colour =</span> <span class="st">"yellowgreen"</span>,</span>
+<span id="cb9-78"><a href="#cb9-78"></a>      <span class="at">linetype =</span> <span class="st">"dashed"</span>,</span>
+<span id="cb9-79"><a href="#cb9-79"></a>      <span class="at">size =</span> <span class="fu">rel</span>(<span class="dv">1</span>)</span>
+<span id="cb9-80"><a href="#cb9-80"></a>    ) <span class="sc">+</span></span>
+<span id="cb9-81"><a href="#cb9-81"></a>    <span class="fu">geom_hline</span>(</span>
+<span id="cb9-82"><a href="#cb9-82"></a>      <span class="at">yintercept =</span> <span class="dv">0</span>,</span>
+<span id="cb9-83"><a href="#cb9-83"></a>      <span class="at">colour =</span> <span class="st">"black"</span>,</span>
+<span id="cb9-84"><a href="#cb9-84"></a>      <span class="at">linetype =</span> <span class="st">"solid"</span>,</span>
+<span id="cb9-85"><a href="#cb9-85"></a>      <span class="at">size =</span> <span class="fu">rel</span>(<span class="fl">0.5</span>)</span>
+<span id="cb9-86"><a href="#cb9-86"></a>    ) <span class="sc">+</span></span>
+<span id="cb9-87"><a href="#cb9-87"></a>    <span class="fu">theme</span>(<span class="at">aspect.ratio =</span> <span class="dv">1</span>,</span>
+<span id="cb9-88"><a href="#cb9-88"></a>          <span class="at">title =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="fu">rel</span>(<span class="dv">2</span>))) <span class="sc">+</span></span>
+<span id="cb9-89"><a href="#cb9-89"></a>    <span class="fu">ggtitle</span>(<span class="fu">TeX</span>(title))</span>
+<span id="cb9-90"><a href="#cb9-90"></a></span>
+<span id="cb9-91"><a href="#cb9-91"></a>  ggExtra<span class="sc">::</span><span class="fu">ggMarginal</span>(p,</span>
+<span id="cb9-92"><a href="#cb9-92"></a>                      <span class="at">type =</span> <span class="st">'density'</span>,</span>
+<span id="cb9-93"><a href="#cb9-93"></a>                      <span class="at">margins =</span> <span class="st">'both'</span>,</span>
+<span id="cb9-94"><a href="#cb9-94"></a>                      <span class="at">size =</span> <span class="fl">4.5</span>)</span>
+<span id="cb9-95"><a href="#cb9-95"></a></span>
+<span id="cb9-96"><a href="#cb9-96"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<p>We notice that we get the desired distribution of skewness with the following parameters:</p>
+<table class="table">
+<caption>Parameters of level-2 distribution of means</caption>
+<thead>
+<tr class="header">
+<th>Model</th>
+<th><span class="math inline">\(\mu\)</span></th>
+<th><span class="math inline">\(\sigma^2\)</span></th>
+<th><span class="math inline">\(\nu\)</span></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><span class="math inline">\(\chi^2\)</span>AR(1)</td>
+<td>10</td>
+<td>10</td>
+<td>5</td>
+</tr>
+<tr class="even">
+<td>BinAR(1)</td>
+<td>2</td>
+<td>1</td>
+<td>2.9</td>
+</tr>
+<tr class="odd">
+<td>PoDAR(1)</td>
+<td>4</td>
+<td>4</td>
+<td>1.5</td>
+</tr>
+</tbody>
+</table>
+<p>Giving us the following distributions:</p>
+<p><img src="Mean_vs_Skewness.png" class="img-fluid"></p>
+</div>
+<div id="tabset-3-3" class="tab-pane" role="tabpanel" aria-labelledby="tabset-3-3-tab">
+<p>We then use a wrapper (<code>make_datasets</code>) around <code>dgm_make.sample</code> that generates datasets for all four DGMs with the appropriate level-2 parameters specified above. Note that here we first generate more than enough (i.e., <span class="math inline">\(2 \times N\)</span>) samples of means to make sure we end up with <span class="math inline">\(N\)</span> samples after applying the upper and lower bounds.</p>
+<div class="cell">
+<details>
+<summary>Click to expand the code</summary>
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1"></a>make_datasets <span class="ot">&lt;-</span> <span class="cf">function</span>(<span class="at">Model =</span> <span class="st">"DAR"</span>,</span>
+<span id="cb10-2"><a href="#cb10-2"></a>                          <span class="at">T =</span> <span class="dv">100</span>,</span>
+<span id="cb10-3"><a href="#cb10-3"></a>                          <span class="at">N =</span> <span class="dv">100</span>,</span>
+<span id="cb10-4"><a href="#cb10-4"></a>                          <span class="at">phi =</span> <span class="fl">0.4</span>,</span>
+<span id="cb10-5"><a href="#cb10-5"></a>                          <span class="at">l2.distribution =</span> <span class="st">"Gaussian"</span>,</span>
+<span id="cb10-6"><a href="#cb10-6"></a>                          <span class="at">uSeed =</span> <span class="dv">0</span>) {</span>
+<span id="cb10-7"><a href="#cb10-7"></a>  <span class="co"># save global seed of the global env and set it back before leaving</span></span>
+<span id="cb10-8"><a href="#cb10-8"></a>  seed.old <span class="ot">&lt;-</span> .Random.seed</span>
+<span id="cb10-9"><a href="#cb10-9"></a>  <span class="fu">on.exit</span>({</span>
+<span id="cb10-10"><a href="#cb10-10"></a>    .Random.seed <span class="ot">&lt;&lt;-</span> seed.old</span>
+<span id="cb10-11"><a href="#cb10-11"></a>  })</span>
+<span id="cb10-12"><a href="#cb10-12"></a>  <span class="fu">set.seed</span>(uSeed)</span>
+<span id="cb10-13"><a href="#cb10-13"></a></span>
+<span id="cb10-14"><a href="#cb10-14"></a>  <span class="cf">if</span> (<span class="fu">tolower</span>(Model) <span class="sc">==</span> <span class="st">"nar"</span>) {</span>
+<span id="cb10-15"><a href="#cb10-15"></a>    model.name <span class="ot">&lt;-</span> <span class="st">"NAR"</span></span>
+<span id="cb10-16"><a href="#cb10-16"></a>    lower_bound <span class="ot">&lt;-</span> <span class="dv">0</span></span>
+<span id="cb10-17"><a href="#cb10-17"></a>    upper_bound <span class="ot">&lt;-</span> <span class="dv">100</span></span>
+<span id="cb10-18"><a href="#cb10-18"></a>    lev2.Mean <span class="ot">&lt;-</span> <span class="dv">50</span></span>
+<span id="cb10-19"><a href="#cb10-19"></a>    lev2.Variance <span class="ot">&lt;-</span> <span class="dv">4</span></span>
+<span id="cb10-20"><a href="#cb10-20"></a>    chi2.df <span class="ot">&lt;-</span> <span class="dv">2</span></span>
+<span id="cb10-21"><a href="#cb10-21"></a>  }</span>
+<span id="cb10-22"><a href="#cb10-22"></a></span>
+<span id="cb10-23"><a href="#cb10-23"></a>  <span class="cf">if</span> (<span class="fu">tolower</span>(Model) <span class="sc">==</span> <span class="st">"chiar"</span> <span class="sc">|</span> <span class="fu">tolower</span>(Model) <span class="sc">==</span> <span class="st">"chi2ar"</span>) {</span>
+<span id="cb10-24"><a href="#cb10-24"></a>    model.name <span class="ot">&lt;-</span> <span class="st">"Chi2AR"</span></span>
+<span id="cb10-25"><a href="#cb10-25"></a>    lower_bound <span class="ot">&lt;-</span> <span class="dv">0</span></span>
+<span id="cb10-26"><a href="#cb10-26"></a>    upper_bound <span class="ot">&lt;-</span> <span class="dv">100</span></span>
+<span id="cb10-27"><a href="#cb10-27"></a>    lev2.Mean <span class="ot">&lt;-</span> <span class="dv">10</span></span>
+<span id="cb10-28"><a href="#cb10-28"></a>    lev2.Variance <span class="ot">&lt;-</span> <span class="dv">10</span></span>
+<span id="cb10-29"><a href="#cb10-29"></a>    chi2.df <span class="ot">&lt;-</span> <span class="dv">5</span></span>
+<span id="cb10-30"><a href="#cb10-30"></a>  }</span>
+<span id="cb10-31"><a href="#cb10-31"></a></span>
+<span id="cb10-32"><a href="#cb10-32"></a>  <span class="cf">if</span> (<span class="fu">tolower</span>(Model) <span class="sc">==</span> <span class="st">"binar"</span>) {</span>
+<span id="cb10-33"><a href="#cb10-33"></a>    model.name <span class="ot">&lt;-</span> <span class="st">"BinAR"</span></span>
+<span id="cb10-34"><a href="#cb10-34"></a>    lower_bound <span class="ot">&lt;-</span> <span class="dv">0</span></span>
+<span id="cb10-35"><a href="#cb10-35"></a>    upper_bound <span class="ot">&lt;-</span> k</span>
+<span id="cb10-36"><a href="#cb10-36"></a>    lev2.Mean <span class="ot">&lt;-</span> <span class="dv">2</span></span>
+<span id="cb10-37"><a href="#cb10-37"></a>    lev2.Variance <span class="ot">&lt;-</span> <span class="dv">1</span></span>
+<span id="cb10-38"><a href="#cb10-38"></a>    chi2.df <span class="ot">&lt;-</span> <span class="fl">2.9</span></span>
+<span id="cb10-39"><a href="#cb10-39"></a>  }</span>
+<span id="cb10-40"><a href="#cb10-40"></a></span>
+<span id="cb10-41"><a href="#cb10-41"></a>  <span class="cf">if</span> (<span class="fu">tolower</span>(Model) <span class="sc">==</span> <span class="st">"podar"</span>) {</span>
+<span id="cb10-42"><a href="#cb10-42"></a>    model.name <span class="ot">&lt;-</span> <span class="st">"PoDAR"</span></span>
+<span id="cb10-43"><a href="#cb10-43"></a>    lower_bound <span class="ot">&lt;-</span> <span class="dv">0</span></span>
+<span id="cb10-44"><a href="#cb10-44"></a>    upper_bound <span class="ot">&lt;-</span> <span class="dv">100</span></span>
+<span id="cb10-45"><a href="#cb10-45"></a>    lev2.Mean <span class="ot">&lt;-</span> <span class="dv">4</span></span>
+<span id="cb10-46"><a href="#cb10-46"></a>    lev2.Variance <span class="ot">&lt;-</span> <span class="dv">4</span></span>
+<span id="cb10-47"><a href="#cb10-47"></a>    chi2.df <span class="ot">&lt;-</span> <span class="fl">1.5</span></span>
+<span id="cb10-48"><a href="#cb10-48"></a>  }</span>
+<span id="cb10-49"><a href="#cb10-49"></a></span>
+<span id="cb10-50"><a href="#cb10-50"></a>  <span class="co"># sampling within-person mean from level 2 distribution</span></span>
+<span id="cb10-51"><a href="#cb10-51"></a>  <span class="cf">if</span> (l2.distribution <span class="sc">==</span> <span class="st">"Gaussian"</span>)</span>
+<span id="cb10-52"><a href="#cb10-52"></a>    Means <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(<span class="dv">2</span> <span class="sc">*</span> N, lev2.Mean, <span class="fu">sqrt</span>(lev2.Variance))</span>
+<span id="cb10-53"><a href="#cb10-53"></a>  <span class="cf">if</span> (l2.distribution <span class="sc">==</span> <span class="st">"Chi2"</span>)</span>
+<span id="cb10-54"><a href="#cb10-54"></a>    Means <span class="ot">&lt;-</span> <span class="fu">rchisq</span>(<span class="dv">2</span> <span class="sc">*</span> N, chi2.df)</span>
+<span id="cb10-55"><a href="#cb10-55"></a></span>
+<span id="cb10-56"><a href="#cb10-56"></a>  <span class="co"># removing out-of-bounds means</span></span>
+<span id="cb10-57"><a href="#cb10-57"></a>  Means[Means <span class="sc">&lt;</span> lower_bound] <span class="ot">&lt;-</span> <span class="cn">NA</span></span>
+<span id="cb10-58"><a href="#cb10-58"></a>  Means[Means <span class="sc">&gt;</span> upper_bound] <span class="ot">&lt;-</span> <span class="cn">NA</span></span>
+<span id="cb10-59"><a href="#cb10-59"></a></span>
+<span id="cb10-60"><a href="#cb10-60"></a>  <span class="co"># keeping N samples from the in-bound means</span></span>
+<span id="cb10-61"><a href="#cb10-61"></a>  Means <span class="ot">&lt;-</span> Means <span class="sc">%&gt;%</span> <span class="fu">na.omit</span>() <span class="sc">%&gt;%</span> <span class="fu">sample</span>(N)</span>
+<span id="cb10-62"><a href="#cb10-62"></a></span>
+<span id="cb10-63"><a href="#cb10-63"></a>  <span class="co"># Making a dataframe using dgm_make.sample</span></span>
+<span id="cb10-64"><a href="#cb10-64"></a>  sample_df <span class="ot">&lt;-</span> <span class="fu">dgm_make.sample</span>(</span>
+<span id="cb10-65"><a href="#cb10-65"></a>    <span class="at">Model =</span> Model,</span>
+<span id="cb10-66"><a href="#cb10-66"></a>    <span class="at">Means =</span> Means,</span>
+<span id="cb10-67"><a href="#cb10-67"></a>    <span class="at">T =</span> T,</span>
+<span id="cb10-68"><a href="#cb10-68"></a>    <span class="at">phi =</span> phi,</span>
+<span id="cb10-69"><a href="#cb10-69"></a>    <span class="at">seeds =</span> <span class="cn">NULL</span></span>
+<span id="cb10-70"><a href="#cb10-70"></a>  )</span>
+<span id="cb10-71"><a href="#cb10-71"></a></span>
+<span id="cb10-72"><a href="#cb10-72"></a>  <span class="fu">return</span>(sample_df)</span>
+<span id="cb10-73"><a href="#cb10-73"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+</div>
+</div>
 </div>
 </section>
 </section>
 <section id="the-analysis-component" class="level2">
 <h2 class="anchored" data-anchor-id="the-analysis-component">The <em>Analysis</em> component</h2>
+<p>In this component we</p>
 </section>
 <section id="the-harvesting-component" class="level2">
 <h2 class="anchored" data-anchor-id="the-harvesting-component">The <em>Harvesting</em> component</h2>
@@ -1354,293 +1583,385 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
   }
 });
 </script><div class="modal fade" id="quarto-embedded-source-code-modal" tabindex="-1" aria-labelledby="quarto-embedded-source-code-modal-label" aria-hidden="true"><div class="modal-dialog modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="quarto-embedded-source-code-modal-label">Source Code</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="">
-<div class="sourceCode" id="cb9" data-shortcodes="false"><pre class="sourceCode numberSource markdown number-lines code-with-copy"><code class="sourceCode markdown"><span id="cb9-1"><a href="#cb9-1"></a><span class="co">---</span></span>
-<span id="cb9-2"><a href="#cb9-2"></a><span class="an">title:</span><span class="co"> "Skewness and staging: Does the floor effect induce bias in multilevel AR(1) models?"</span></span>
-<span id="cb9-3"><a href="#cb9-3"></a><span class="an">subtitle:</span><span class="co"> "Reproducible codes"</span></span>
-<span id="cb9-4"><a href="#cb9-4"></a><span class="an">author:</span><span class="co"> "MH Manuel Haqiqatkhah"</span></span>
-<span id="cb9-5"><a href="#cb9-5"></a><span class="an">format:</span></span>
-<span id="cb9-6"><a href="#cb9-6"></a><span class="co">  html:</span></span>
-<span id="cb9-7"><a href="#cb9-7"></a><span class="co">    code-fold: true</span></span>
-<span id="cb9-8"><a href="#cb9-8"></a><span class="co">    code-tools: true</span></span>
-<span id="cb9-9"><a href="#cb9-9"></a><span class="co">    code-overflow: wrap</span></span>
-<span id="cb9-10"><a href="#cb9-10"></a><span class="co">    code-line-numbers: true</span></span>
-<span id="cb9-11"><a href="#cb9-11"></a><span class="co">    toc: true</span></span>
-<span id="cb9-12"><a href="#cb9-12"></a><span class="co">    toc-location: left</span></span>
-<span id="cb9-13"><a href="#cb9-13"></a><span class="co">    toc-depth: 5</span></span>
-<span id="cb9-14"><a href="#cb9-14"></a><span class="co">    code-summary: "Click to expand the code"</span></span>
-<span id="cb9-15"><a href="#cb9-15"></a><span class="co">    anchor-sections: true</span></span>
-<span id="cb9-16"><a href="#cb9-16"></a><span class="co">    reference-location: document</span></span>
-<span id="cb9-17"><a href="#cb9-17"></a><span class="co">    citation-location: margin</span></span>
-<span id="cb9-18"><a href="#cb9-18"></a><span class="co">    pdf: default</span></span>
-<span id="cb9-19"><a href="#cb9-19"></a><span class="co">  # theme:</span></span>
-<span id="cb9-20"><a href="#cb9-20"></a><span class="co">  #   light: litera</span></span>
-<span id="cb9-21"><a href="#cb9-21"></a><span class="co">  #   dark: darkly</span></span>
-<span id="cb9-22"><a href="#cb9-22"></a><span class="co">  # pdf: default</span></span>
-<span id="cb9-23"><a href="#cb9-23"></a><span class="an">execute:</span></span>
-<span id="cb9-24"><a href="#cb9-24"></a><span class="co">  enabled: true</span></span>
-<span id="cb9-25"><a href="#cb9-25"></a><span class="co">  echo: true</span></span>
-<span id="cb9-26"><a href="#cb9-26"></a><span class="co">  include: true</span></span>
-<span id="cb9-27"><a href="#cb9-27"></a><span class="co">  warning: false</span></span>
-<span id="cb9-28"><a href="#cb9-28"></a><span class="co">  error: false</span></span>
-<span id="cb9-29"><a href="#cb9-29"></a><span class="an">editor:</span><span class="co"> visual</span></span>
-<span id="cb9-30"><a href="#cb9-30"></a><span class="an">bibliography:</span><span class="co"> references.bib</span></span>
-<span id="cb9-31"><a href="#cb9-31"></a><span class="co">---</span></span>
-<span id="cb9-32"><a href="#cb9-32"></a></span>
-<span id="cb9-33"><a href="#cb9-33"></a><span class="fu"># Introduction {#sec-introduction}</span></span>
-<span id="cb9-34"><a href="#cb9-34"></a></span>
-<span id="cb9-35"><a href="#cb9-35"></a>This document contains the reproducible code for the manuscript Skewness and staging: Does the floor effect induce bias in multilevel AR(1) models? by M. M. Haqiqatkhah, O. Ryan, and E. L. Hamaker. please cite as:</span>
-<span id="cb9-36"><a href="#cb9-36"></a></span>
-<span id="cb9-37"><a href="#cb9-37"></a>...</span>
-<span id="cb9-38"><a href="#cb9-38"></a></span>
-<span id="cb9-39"><a href="#cb9-39"></a>In this study, we simulated multilevel data from three data generating mechanisms (DGMs), namely, the AR(1, $\chi^2$AR(1), BinAR(1), and PoDAR(1) models with different parameter sets.\</span>
-<span id="cb9-40"><a href="#cb9-40"></a>For details, see the paper.</span>
-<span id="cb9-41"><a href="#cb9-41"></a></span>
-<span id="cb9-42"><a href="#cb9-42"></a>The simulation was conducted using the following modular pipeline design, inspired by Bien's R package <span class="in">`simulator`</span> <span class="co">[</span><span class="ot">-@bien_2016_SimulatorEngineStreamline</span><span class="co">]</span>, consisting of the following **components**:</span>
-<span id="cb9-43"><a href="#cb9-43"></a></span>
-<span id="cb9-44"><a href="#cb9-44"></a>A.  *Simulation*: generating the datasets</span>
-<span id="cb9-45"><a href="#cb9-45"></a>B.  *Analysis*: modeling the data</span>
-<span id="cb9-46"><a href="#cb9-46"></a>C.  *Harvesting*: collecting the relevant parameter estimates</span>
-<span id="cb9-47"><a href="#cb9-47"></a>D.  *Reporting*: making tables and plots</span>
-<span id="cb9-48"><a href="#cb9-48"></a></span>
-<span id="cb9-49"><a href="#cb9-49"></a>And the components were placed in a **pipeline**, that managed:</span>
-<span id="cb9-50"><a href="#cb9-50"></a></span>
-<span id="cb9-51"><a href="#cb9-51"></a><span class="ss">1.  </span>Making the simulation design matrix that include all relevant conditions</span>
-<span id="cb9-52"><a href="#cb9-52"></a><span class="ss">2.  </span>Book-keeping data files belonging to each replication of each condition</span>
-<span id="cb9-53"><a href="#cb9-53"></a><span class="ss">3.  </span>Performing simulations in batch</span>
-<span id="cb9-54"><a href="#cb9-54"></a><span class="ss">4.  </span>Performing Analyses in batch</span>
-<span id="cb9-55"><a href="#cb9-55"></a><span class="ss">5.  </span>Collecting the data in batch</span>
-<span id="cb9-56"><a href="#cb9-56"></a></span>
-<span id="cb9-57"><a href="#cb9-57"></a>This document is structured as follows. In @sec-components, we explain the four components and the functions used therein. Then, in @sec-pipeline we explain the wrapper functions used in the pipeline, and show how the pipeline was---and can be---executed. Finally, in @sec-figures, we discuss how the harvested data was used to make the figures used in the paper (and others that were not included).</span>
-<span id="cb9-58"><a href="#cb9-58"></a></span>
-<span id="cb9-59"><a href="#cb9-59"></a><span class="co">&lt;!--# In what follows we describe the steps and provide the codes used in this study. In the other tab of this document, we provide the code to generate additional plots shown in the paper. Note that although the codes provided here are cleaned as much as possible, they are not necessarily succinctly written; some functions were written to accommodate the most general functionalities which turned out to be not necessary for the simulation study. --&gt;</span></span>
-<span id="cb9-60"><a href="#cb9-60"></a></span>
-<span id="cb9-61"><a href="#cb9-61"></a>Before we begin, we need to read the scripts to include them in this document. By default, none of the scripts run here (as they are time consuming). To run the scripts of each component, you can change the following variables to <span class="in">`TRUE`</span> and re-render the document:</span>
-<span id="cb9-62"><a href="#cb9-62"></a></span>
-<span id="cb9-65"><a href="#cb9-65"></a><span class="in">```{r}</span></span>
-<span id="cb9-66"><a href="#cb9-66"></a><span class="co">#| eval: true</span></span>
-<span id="cb9-67"><a href="#cb9-67"></a><span class="co">#| code-fold: false</span></span>
-<span id="cb9-68"><a href="#cb9-68"></a>runComponent_Simulation <span class="ot">&lt;-</span> <span class="cn">FALSE</span></span>
-<span id="cb9-69"><a href="#cb9-69"></a>runComponent_Analysis <span class="ot">&lt;-</span> <span class="cn">FALSE</span></span>
-<span id="cb9-70"><a href="#cb9-70"></a>runComponent_Harvesting <span class="ot">&lt;-</span> <span class="cn">FALSE</span></span>
-<span id="cb9-71"><a href="#cb9-71"></a>runComponent_Reporting <span class="ot">&lt;-</span> <span class="cn">FALSE</span></span>
-<span id="cb9-72"><a href="#cb9-72"></a><span class="in">```</span></span>
-<span id="cb9-73"><a href="#cb9-73"></a></span>
-<span id="cb9-74"><a href="#cb9-74"></a>In case you want to change the scripts (e.g., to run a smaller portion of the simulation, or try other parameters, etc.), you should look up the <span class="in">`kintr`</span> parameters called in each chunk (with <span class="in">`&lt;&lt;some_param&gt;&gt;`</span>) and find the corresponding code (under <span class="in">`## @knitr some_param`</span>) in the <span class="in">`scripts`</span> folder.</span>
-<span id="cb9-75"><a href="#cb9-75"></a></span>
-<span id="cb9-78"><a href="#cb9-78"></a><span class="in">```{r}</span></span>
-<span id="cb9-79"><a href="#cb9-79"></a><span class="co">#| label: setup</span></span>
-<span id="cb9-80"><a href="#cb9-80"></a><span class="co">#| echo: false</span></span>
-<span id="cb9-81"><a href="#cb9-81"></a><span class="co">#| include: false</span></span>
-<span id="cb9-82"><a href="#cb9-82"></a><span class="co">#| eval: true</span></span>
-<span id="cb9-83"><a href="#cb9-83"></a>scripts <span class="ot">&lt;-</span> <span class="fu">list.files</span>(<span class="at">path =</span> <span class="st">"scripts/"</span>,</span>
-<span id="cb9-84"><a href="#cb9-84"></a>                      <span class="at">pattern =</span> <span class="st">".r"</span>,</span>
-<span id="cb9-85"><a href="#cb9-85"></a>                      <span class="at">full.names =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb9-86"><a href="#cb9-86"></a></span>
-<span id="cb9-87"><a href="#cb9-87"></a><span class="fu">sapply</span>(scripts, knitr<span class="sc">::</span>read_chunk)</span>
-<span id="cb9-88"><a href="#cb9-88"></a></span>
-<span id="cb9-89"><a href="#cb9-89"></a>runComponent_Initialization <span class="ot">&lt;-</span> runComponent_Simulation <span class="sc">|</span> runComponent_Analysis <span class="sc">|</span> runComponent_Harvesting <span class="sc">|</span> runComponent_Reporting</span>
-<span id="cb9-90"><a href="#cb9-90"></a></span>
-<span id="cb9-91"><a href="#cb9-91"></a><span class="fu">library</span>(knitr)</span>
-<span id="cb9-92"><a href="#cb9-92"></a></span>
-<span id="cb9-93"><a href="#cb9-93"></a><span class="in">```</span></span>
-<span id="cb9-94"><a href="#cb9-94"></a></span>
-<span id="cb9-95"><a href="#cb9-95"></a><span class="in">```{r, eval = runComponent_Initialization}</span></span>
-<span id="cb9-96"><a href="#cb9-96"></a><span class="co">#| include: false</span></span>
-<span id="cb9-97"><a href="#cb9-97"></a><span class="sc">&lt;</span><span class="er">&lt;</span>load_packages<span class="sc">&gt;</span><span class="er">&gt;</span></span>
-<span id="cb9-98"><a href="#cb9-98"></a><span class="in">```</span></span>
-<span id="cb9-99"><a href="#cb9-99"></a></span>
-<span id="cb9-100"><a href="#cb9-100"></a><span class="fu"># Core components {#sec-components}</span></span>
-<span id="cb9-101"><a href="#cb9-101"></a></span>
-<span id="cb9-102"><a href="#cb9-102"></a><span class="fu">## The *Simulation* component</span></span>
-<span id="cb9-103"><a href="#cb9-103"></a></span>
-<span id="cb9-104"><a href="#cb9-104"></a>The Simulation component consists of four sets of functions:</span>
-<span id="cb9-105"><a href="#cb9-105"></a></span>
-<span id="cb9-106"><a href="#cb9-106"></a>i.  Functions that implement the DGMs and generate univariate ($N=1$) time series of length $T$ from the parameters given to them;</span>
-<span id="cb9-107"><a href="#cb9-107"></a>ii. Wrappers that interface the DGM functions;</span>
-<span id="cb9-108"><a href="#cb9-108"></a>iii. A function that</span>
-<span id="cb9-109"><a href="#cb9-109"></a>iv. A wrapper to generate datasets (consisting on $N$ time series of length $T$)</span>
-<span id="cb9-110"><a href="#cb9-110"></a></span>
-<span id="cb9-111"><a href="#cb9-111"></a><span class="fu">### Data-generating models specifications</span></span>
-<span id="cb9-112"><a href="#cb9-112"></a></span>
-<span id="cb9-113"><a href="#cb9-113"></a>First we define functions for each data-generating models (DGMs) that can produce univariate, single-subject ($N=1$) time series of desired length $T$ (default: <span class="in">`T = 100`</span>) with the two canonical parameters and a given random seed (default: <span class="in">`seed = 0`</span>). All model(-implied) parameters are saved in a list (called <span class="in">`pa`</span>).</span>
-<span id="cb9-114"><a href="#cb9-114"></a></span>
-<span id="cb9-115"><a href="#cb9-115"></a>For each model, the first observation ($X_1$) is randomly drawn from the model-implied marginal distribution, to eliminate the need for removing the burn-in window in the beginning of the data. After the data is generated, in case the argument <span class="in">`only.ts`</span> is set to be <span class="in">`TRUE`</span>, the raw data (as a vector of length <span class="in">`T`</span>) is returned. Otherwise, the function calculates empirical dynamic ($\phi$) and marginal ($\mu$, $\sigma^2$, and $\gamma$) parameters based on the simulated data, and save it in a list (<span class="in">`Empirical.Parameters`</span>). Furthermore, two <span class="in">`r ifelse(is_html_output(), r"($\mathrm{\LaTeX{}}$)", r"(\LaTeX{})")`</span>-ready strings (<span class="in">`Model.Description`</span> and <span class="in">`Model.Description.Short`</span>) are made which include a summary of the model parameters (that can be used, e.g., in plots). Finally, in case <span class="in">`only.ts != TRUE`</span>, the function returns a list consisting of the time series (stored in <span class="in">`x`</span>), verbal description of the dataset (<span class="in">`Model.Description`</span> and <span class="in">`Model.Description.Short`</span>), theoretical (i.e., model-implied) parameters (<span class="in">`Model.Parameters`</span>), and empirical (i.e., sample) estimated parameters (<span class="in">`Empirical.Parameters`</span>).</span>
-<span id="cb9-116"><a href="#cb9-116"></a></span>
-<span id="cb9-117"><a href="#cb9-117"></a>::: panel-tabset</span>
-<span id="cb9-118"><a href="#cb9-118"></a><span class="fu">#### The AR(1) model</span></span>
-<span id="cb9-119"><a href="#cb9-119"></a></span>
-<span id="cb9-120"><a href="#cb9-120"></a>The canonical parameters of the AR(1) model with normally distributed residuals (which we referred to as <span class="in">`NAR(1)`</span> in the simulation) are the autoregressive parameter $\phi$ (default: <span class="in">`phi = 0.4`</span>), mean $\mu$ (default: <span class="in">`Mean = 50`</span>), and the marginal variance $\sigma^2$ (default: <span class="in">`var.marginal = 4`</span>). Based on the marginal variance, the residual variance (<span class="in">`var.resid`</span>) is calculated via $\sigma^2_\epsilon = \sigma^2 (1 - \phi^2)$.</span>
-<span id="cb9-121"><a href="#cb9-121"></a></span>
-<span id="cb9-122"><a href="#cb9-122"></a><span class="fu">##### Construction</span></span>
-<span id="cb9-123"><a href="#cb9-123"></a></span>
-<span id="cb9-124"><a href="#cb9-124"></a>The time series is constructed by first generating a zero-centered time series $\tilde X_t$ (<span class="in">`x_cent`</span>). To do so, first the initial observation in the time series (<span class="in">`x_cent[1]`</span>) is sampled from normal distribution with mean zero and a variance equal to the marginal variance of the model:</span>
-<span id="cb9-125"><a href="#cb9-125"></a></span>
-<span id="cb9-126"><a href="#cb9-126"></a>$$</span>
-<span id="cb9-127"><a href="#cb9-127"></a>\tilde X_1 \sim \mathcal{N}(0, \sigma^2)</span>
-<span id="cb9-128"><a href="#cb9-128"></a>$$</span>
-<span id="cb9-129"><a href="#cb9-129"></a></span>
-<span id="cb9-130"><a href="#cb9-130"></a>Then, the remainder of the time series is generated using the definition of the AR(1) model (not that the here the residual variance is used in the normal distribution):</span>
-<span id="cb9-131"><a href="#cb9-131"></a></span>
-<span id="cb9-132"><a href="#cb9-132"></a>$$</span>
-<span id="cb9-133"><a href="#cb9-133"></a>\begin{aligned}</span>
-<span id="cb9-134"><a href="#cb9-134"></a>\tilde X_{t} &amp;= \phi \tilde X_{t-1} + \epsilon_{t} <span class="sc">\\</span></span>
-<span id="cb9-135"><a href="#cb9-135"></a>\epsilon_{t} &amp;\sim \mathcal{N}(0, {\sigma^2_{\epsilon}})</span>
-<span id="cb9-136"><a href="#cb9-136"></a>\end{aligned}</span>
-<span id="cb9-137"><a href="#cb9-137"></a>$$ Finally, the mean is added to the centered zero-centered time series to reach the final time series with mean $\mu$:</span>
-<span id="cb9-138"><a href="#cb9-138"></a></span>
-<span id="cb9-139"><a href="#cb9-139"></a>$$</span>
-<span id="cb9-140"><a href="#cb9-140"></a>X_t = \tilde X_t + \mu</span>
-<span id="cb9-141"><a href="#cb9-141"></a>$$</span>
-<span id="cb9-142"><a href="#cb9-142"></a></span>
-<span id="cb9-143"><a href="#cb9-143"></a><span class="fu">##### Code</span></span>
-<span id="cb9-144"><a href="#cb9-144"></a></span>
-<span id="cb9-145"><a href="#cb9-145"></a><span class="in">```{r, eval = runComponent_Simulation}</span></span>
-<span id="cb9-146"><a href="#cb9-146"></a><span class="sc">&lt;</span><span class="er">&lt;</span>dgm_nar<span class="sc">&gt;</span><span class="er">&gt;</span></span>
-<span id="cb9-147"><a href="#cb9-147"></a><span class="in">```</span></span>
-<span id="cb9-148"><a href="#cb9-148"></a></span>
-<span id="cb9-149"><a href="#cb9-149"></a><span class="fu">#### The $\chi^2$AR(1) model</span></span>
-<span id="cb9-150"><a href="#cb9-150"></a></span>
-<span id="cb9-151"><a href="#cb9-151"></a>The canonical parameters of the $\chi^2$AR(1) model (which we referred to as <span class="in">`ChiAR(1)`</span> in the simulation) are the autoregressive parameter $\phi$ (default: <span class="in">`phi = 0.4`</span>), and degrees of freedom $\nu$ (default: <span class="in">`nu = 3`</span>). We set the intercept to zero (<span class="in">`c = 0`</span>).<span class="ot">[^1]</span></span>
-<span id="cb9-152"><a href="#cb9-152"></a></span>
-<span id="cb9-153"><a href="#cb9-153"></a><span class="fu">##### Construction</span></span>
-<span id="cb9-154"><a href="#cb9-154"></a></span>
-<span id="cb9-155"><a href="#cb9-155"></a>Similar to the AR(1) model, we need to sample the first observation of the $\chi^2$AR(1) model from its marginal distribution. However, since this model does not have a closed-form marginal distribution, as an approximation, we instead sample <span class="in">`x[1]`</span> from a $\chi^2$ distribution with $\nu$ degrees of freedom:</span>
-<span id="cb9-156"><a href="#cb9-156"></a></span>
-<span id="cb9-157"><a href="#cb9-157"></a>$$</span>
-<span id="cb9-158"><a href="#cb9-158"></a>X_1 \sim \chi^2(\nu)</span>
-<span id="cb9-159"><a href="#cb9-159"></a>$$</span>
-<span id="cb9-160"><a href="#cb9-160"></a></span>
-<span id="cb9-161"><a href="#cb9-161"></a>Then, we generate the remainder of the time series using the definition of the $\chi^2$AR(1) model:</span>
-<span id="cb9-162"><a href="#cb9-162"></a></span>
-<span id="cb9-163"><a href="#cb9-163"></a>$$</span>
-<span id="cb9-164"><a href="#cb9-164"></a>\begin{aligned}</span>
-<span id="cb9-165"><a href="#cb9-165"></a>X_{t} &amp;= c + \phi X_{t-1} + a_{t} <span class="sc">\\</span></span>
-<span id="cb9-166"><a href="#cb9-166"></a>a_{t} &amp;\sim \chi^2(\nu).</span>
-<span id="cb9-167"><a href="#cb9-167"></a>\end{aligned}</span>
-<span id="cb9-168"><a href="#cb9-168"></a>$$</span>
-<span id="cb9-169"><a href="#cb9-169"></a></span>
-<span id="cb9-170"><a href="#cb9-170"></a><span class="fu">##### Code</span></span>
-<span id="cb9-171"><a href="#cb9-171"></a></span>
-<span id="cb9-172"><a href="#cb9-172"></a><span class="in">```{r, eval = runComponent_Simulation}</span></span>
-<span id="cb9-173"><a href="#cb9-173"></a><span class="sc">&lt;</span><span class="er">&lt;</span>dgm_chiar<span class="sc">&gt;</span><span class="er">&gt;</span></span>
-<span id="cb9-174"><a href="#cb9-174"></a><span class="in">```</span></span>
-<span id="cb9-175"><a href="#cb9-175"></a></span>
-<span id="cb9-176"><a href="#cb9-176"></a><span class="fu">#### The BinAR(1) model</span></span>
-<span id="cb9-177"><a href="#cb9-177"></a></span>
-<span id="cb9-178"><a href="#cb9-178"></a>The canonical parameters of the BinAR(1) model (which we referred to as <span class="in">`BinAR(1)`</span> in the simulation) are the survival probability $\alpha$ (default: <span class="in">`alpha = 0.5`</span>) and the revival probability $\beta$ (default: <span class="in">`beta = 0.4`</span>). By default, the maximum value on scale $k$ was set to <span class="in">`k = 10`</span>.</span>
-<span id="cb9-179"><a href="#cb9-179"></a></span>
-<span id="cb9-180"><a href="#cb9-180"></a><span class="fu">##### Construction</span></span>
-<span id="cb9-181"><a href="#cb9-181"></a></span>
-<span id="cb9-182"><a href="#cb9-182"></a>We first calculate the $\theta$ parameter, which characterizes the marginal distribution of the BinaR(1) model:</span>
-<span id="cb9-183"><a href="#cb9-183"></a></span>
-<span id="cb9-184"><a href="#cb9-184"></a>$$</span>
-<span id="cb9-185"><a href="#cb9-185"></a>\theta = \frac{k \beta}{1-(\alpha-\beta)}</span>
-<span id="cb9-186"><a href="#cb9-186"></a>$$ Then we draw $X_1$ (<span class="in">`x[1]`</span>) from the marginal distribution of the model:</span>
-<span id="cb9-187"><a href="#cb9-187"></a></span>
-<span id="cb9-188"><a href="#cb9-188"></a>$$</span>
-<span id="cb9-189"><a href="#cb9-189"></a>X_1 \sim Binom(k, \theta)</span>
-<span id="cb9-190"><a href="#cb9-190"></a>$$</span>
-<span id="cb9-191"><a href="#cb9-191"></a></span>
-<span id="cb9-192"><a href="#cb9-192"></a>The rest of time series is generated sequentially, for each time point $t$, by drawing values for the number of survived (<span class="in">`S_t[t]`</span>) and revived (<span class="in">`R_t[t]`</span>) elements of the BinAR(1) model based on the previous observations ($X_{t-1}$), and then adding them:</span>
-<span id="cb9-193"><a href="#cb9-193"></a></span>
-<span id="cb9-194"><a href="#cb9-194"></a>$$</span>
-<span id="cb9-195"><a href="#cb9-195"></a>\begin{aligned}</span>
-<span id="cb9-196"><a href="#cb9-196"></a>S_{t} &amp;\sim Binom(X_{t-1}, \alpha) <span class="sc">\\</span></span>
-<span id="cb9-197"><a href="#cb9-197"></a>R_t &amp;\sim Binom(k -X_{t-1}, \beta) <span class="sc">\\</span></span>
-<span id="cb9-198"><a href="#cb9-198"></a>X_{t} &amp;= S_t + R_t</span>
-<span id="cb9-199"><a href="#cb9-199"></a>\end{aligned}</span>
-<span id="cb9-200"><a href="#cb9-200"></a>$$</span>
-<span id="cb9-201"><a href="#cb9-201"></a></span>
-<span id="cb9-202"><a href="#cb9-202"></a><span class="fu">##### Code</span></span>
-<span id="cb9-203"><a href="#cb9-203"></a></span>
-<span id="cb9-204"><a href="#cb9-204"></a><span class="in">```{r, eval = runComponent_Simulation}</span></span>
-<span id="cb9-205"><a href="#cb9-205"></a><span class="sc">&lt;</span><span class="er">&lt;</span>dgm_binar<span class="sc">&gt;</span><span class="er">&gt;</span></span>
-<span id="cb9-206"><a href="#cb9-206"></a><span class="in">```</span></span>
-<span id="cb9-207"><a href="#cb9-207"></a></span>
-<span id="cb9-208"><a href="#cb9-208"></a><span class="fu">#### The PoDAR(1) model</span></span>
-<span id="cb9-209"><a href="#cb9-209"></a></span>
-<span id="cb9-210"><a href="#cb9-210"></a>The canonical parameters of the PoDAR(1) model (which we referred to as <span class="in">`PoDAR(1)`</span> in the simulation) are the persistence probability $\tau$ (default: <span class="in">`tau = 0.7`</span>) and the average rate $\lambda$ (default: <span class="in">`lambda = 0.5`</span>).</span>
-<span id="cb9-211"><a href="#cb9-211"></a></span>
-<span id="cb9-212"><a href="#cb9-212"></a><span class="fu">##### Construction</span></span>
-<span id="cb9-213"><a href="#cb9-213"></a></span>
-<span id="cb9-214"><a href="#cb9-214"></a>To generate the time series, we first draw the first observation $X_1$ (<span class="in">`x[1]`</span>) from a Poisson distribution with rate $\lambda$:</span>
-<span id="cb9-215"><a href="#cb9-215"></a></span>
-<span id="cb9-216"><a href="#cb9-216"></a>$$</span>
-<span id="cb9-217"><a href="#cb9-217"></a>X_1 \sim Poisson(\lambda)</span>
-<span id="cb9-218"><a href="#cb9-218"></a>$$</span>
-<span id="cb9-219"><a href="#cb9-219"></a></span>
-<span id="cb9-220"><a href="#cb9-220"></a>And generate the rest of the time series by first drawing $Z_t$ from a Poisson distribution with rate $\lambda$ and $P_t$ from a binomial distribution with size probability of success $\tau$ (that is equivalent to a Bernoulli distribution with probability $\tau$). Then, we calculate $X_t$ based on the previous observation (<span class="in">`x[t-1]`</span>) and values of $Z_t$ (<span class="in">`Z_t[t]`</span>) and $P_t$ (<span class="in">`P_t[t]`</span>), using the definition of the PoDAR(1) model:</span>
-<span id="cb9-221"><a href="#cb9-221"></a></span>
-<span id="cb9-222"><a href="#cb9-222"></a>$$</span>
-<span id="cb9-223"><a href="#cb9-223"></a>\begin{aligned}</span>
-<span id="cb9-224"><a href="#cb9-224"></a>Z_t &amp;\sim Poisson(\lambda) <span class="sc">\\</span></span>
-<span id="cb9-225"><a href="#cb9-225"></a>P_t &amp;\sim Binom(1, \tau) <span class="sc">\\</span></span>
-<span id="cb9-226"><a href="#cb9-226"></a>X_t &amp;= P_t X_{t-1} + (1-P_t) Z_t</span>
-<span id="cb9-227"><a href="#cb9-227"></a>\end{aligned}</span>
-<span id="cb9-228"><a href="#cb9-228"></a>$$</span>
-<span id="cb9-229"><a href="#cb9-229"></a></span>
-<span id="cb9-230"><a href="#cb9-230"></a><span class="fu">##### Code</span></span>
-<span id="cb9-231"><a href="#cb9-231"></a></span>
-<span id="cb9-232"><a href="#cb9-232"></a><span class="in">```{r, eval = runComponent_Simulation}</span></span>
-<span id="cb9-233"><a href="#cb9-233"></a><span class="sc">&lt;</span><span class="er">&lt;</span>dgm_podar<span class="sc">&gt;</span><span class="er">&gt;</span></span>
-<span id="cb9-234"><a href="#cb9-234"></a><span class="in">```</span></span>
-<span id="cb9-235"><a href="#cb9-235"></a>:::</span>
-<span id="cb9-236"><a href="#cb9-236"></a></span>
-<span id="cb9-237"><a href="#cb9-237"></a><span class="ot">[^1]: </span>The $\chi^2$AR(1), in a more general form, can have an intercept ($X_{t} = c + \phi X_{t-1} + a_t, \quad a_t \sim \chi^2(\nu)$. Since the intercept was set to zero in the simulation study, we discussed a zero-intercept version of this model ($c=0$) in the paper. See the Supplemental Materials for more details.</span>
-<span id="cb9-238"><a href="#cb9-238"></a></span>
-<span id="cb9-239"><a href="#cb9-239"></a><span class="fu">### General DGM wrappers</span></span>
-<span id="cb9-240"><a href="#cb9-240"></a></span>
-<span id="cb9-241"><a href="#cb9-241"></a>Given that, in each model, two canonical parameters characterize the dynamic and marginal features of the generated time series, and given that we have analytic formulas that link the canonical parameters to the model-implied $\phi$, $\mu$, $\sigma^2$, and \$<span class="sc">\\</span>gamma\$, we use a function (<span class="in">`dgm_parameterizer`</span>) to calculate canonical parameters from two given parameters, and make a complete list of parameters (called pa). This list also includes non-parameter variables, importantly, the time series length $T$ (saved in <span class="in">`pa$T`</span>) and the random seed used in the <span class="in">`dgm_*`</span> functions (saved in <span class="in">`pa$seed`</span>). A wrapper function (<span class="in">`dgm_generator`</span>) is used as an interface to all <span class="in">`dgm_*`</span> functions, which first makes sure the given parameters are sufficient for data generation, makes a complete parameter list <span class="in">`pa`</span> with the help of <span class="in">`dgm_parameterizer`</span>, and passes <span class="in">`pa`</span> to the respective DGM generating function.</span>
-<span id="cb9-242"><a href="#cb9-242"></a></span>
-<span id="cb9-243"><a href="#cb9-243"></a>::: panel-tabset</span>
-<span id="cb9-244"><a href="#cb9-244"></a><span class="fu">#### Parameter conversions</span></span>
-<span id="cb9-245"><a href="#cb9-245"></a></span>
-<span id="cb9-246"><a href="#cb9-246"></a>The function <span class="in">`dgm_parameterizer`</span> calculates canonical/model-implied parameters of a given DGM (specified using the <span class="in">`Model`</span> argument) based on the parameters given to it as arguments, and saves them in a list of parameters (<span class="in">`pa`</span>), which s returned by the function. The function makes sure that the set of parameters provided are sufficient to characterize the dynamic parameter of the model (i.e., the autoregression $\phi$) and at least one of the marginal parameters (importantly, the mean $\mu$) but giving default values to some parameters.</span>
-<span id="cb9-247"><a href="#cb9-247"></a></span>
-<span id="cb9-248"><a href="#cb9-248"></a><span class="in">```{r, eval = runComponent_Simulation}</span></span>
-<span id="cb9-249"><a href="#cb9-249"></a><span class="sc">&lt;</span><span class="er">&lt;</span>dgm_parameterizer<span class="sc">&gt;</span><span class="er">&gt;</span></span>
-<span id="cb9-250"><a href="#cb9-250"></a><span class="in">```</span></span>
-<span id="cb9-251"><a href="#cb9-251"></a></span>
-<span id="cb9-252"><a href="#cb9-252"></a><span class="fu">#### Wrapper around `dgm_*` functions</span></span>
-<span id="cb9-253"><a href="#cb9-253"></a></span>
-<span id="cb9-254"><a href="#cb9-254"></a>The function <span class="in">`dgm_generator`</span> gets a set of parameters (either as separate arguments, or a list of parameters, like the one returned by <span class="in">`dgm_parameterizer`</span>), saves them in a list called <span class="in">`pa`</span>. It checks whether $\phi$ is included in the list (if not, sets the default value <span class="in">`pa$phi = 0.2`</span>), and checks if at least one other parameter (which, together with $\phi$, is required to characterize the marginal properties of the DGMs) is calculated for it (if not, it sets the default value <span class="in">`pa$Mean = 5`</span> for $\mu$). Furthermore, if the DGM name, time series length, and the random seed are not provided, it gives them default values (respectively: <span class="in">`Model = "ChiAR(1)"`</span>, <span class="in">`T = 100`</span>, and <span class="in">`seed = 0`</span>) and adds them to <span class="in">`pa`</span>.</span>
-<span id="cb9-255"><a href="#cb9-255"></a></span>
-<span id="cb9-256"><a href="#cb9-256"></a>Then, it passes the <span class="in">`pa`</span> list to <span class="in">`dgm_parameterizer`</span> to do the necessary conversions to complete the list of canonical and model-implied parameters. Finally, given the model name, it checks if non-canonical parameters $k$ and $c$ are set (otherwise assigns appropriate defaults to them), and passes the complete parameter list to the respective DGM function.</span>
-<span id="cb9-257"><a href="#cb9-257"></a></span>
-<span id="cb9-258"><a href="#cb9-258"></a><span class="in">```{r, eval = runComponent_Simulation}</span></span>
-<span id="cb9-259"><a href="#cb9-259"></a><span class="sc">&lt;</span><span class="er">&lt;</span>dgm_generator<span class="sc">&gt;</span><span class="er">&gt;</span></span>
-<span id="cb9-260"><a href="#cb9-260"></a><span class="in">```</span></span>
-<span id="cb9-261"><a href="#cb9-261"></a>:::</span>
-<span id="cb9-262"><a href="#cb9-262"></a></span>
-<span id="cb9-263"><a href="#cb9-263"></a><span class="fu">### Dataset generation</span></span>
-<span id="cb9-264"><a href="#cb9-264"></a></span>
-<span id="cb9-265"><a href="#cb9-265"></a>The machinery described above can be used to generate individual ($N=1$) time series. However, for the simulation study, we need datasets comprising of multiple ($N=25, 50, 100$) individuals. As we discussed in the paper, in our study, all individuals in a dataset of a DGM share the same autoregressive parameter ($\phi_i=0.4$) and the individual differences are only in the individual means ($\mu_i$). Thus, we write a function (<span class="in">`dgm_make.sample`</span>) that can generate, for each DGM, a dataset of $N$ individuals based on an $N$-dimensional vector of individual means. Then, with a wrapper function (<span class="in">`make_datasets`</span>), we generate datasets</span>
-<span id="cb9-266"><a href="#cb9-266"></a></span>
-<span id="cb9-267"><a href="#cb9-267"></a><span class="in">```{r, eval = runComponent_Simulation}</span></span>
-<span id="cb9-268"><a href="#cb9-268"></a><span class="sc">&lt;</span><span class="er">&lt;</span>dgm_make.sample<span class="sc">&gt;</span><span class="er">&gt;</span></span>
-<span id="cb9-269"><a href="#cb9-269"></a><span class="in">```</span></span>
-<span id="cb9-270"><a href="#cb9-270"></a></span>
-<span id="cb9-271"><a href="#cb9-271"></a><span class="fu">## The *Analysis* component</span></span>
-<span id="cb9-272"><a href="#cb9-272"></a></span>
-<span id="cb9-273"><a href="#cb9-273"></a><span class="fu">## The *Harvesting* component</span></span>
-<span id="cb9-274"><a href="#cb9-274"></a></span>
-<span id="cb9-275"><a href="#cb9-275"></a><span class="fu">## The *Reporting* component</span></span>
-<span id="cb9-276"><a href="#cb9-276"></a></span>
-<span id="cb9-277"><a href="#cb9-277"></a><span class="fu"># Pipeline {#sec-pipeline}</span></span>
-<span id="cb9-278"><a href="#cb9-278"></a></span>
-<span id="cb9-279"><a href="#cb9-279"></a>We implemented each of these tasks in separate functions that were essentially wrapper functions (with parallel-computing implementation) around the modular components. Using these wrapper functions, each replication of each simulated condition was saved in a separate <span class="in">`.rds`</span> file. These data files were fed to the analysis wrapper function whose output was saved in separate <span class="in">`.rds`</span> data files. To collect relevant parameter estimates, another wrapper function was used to read the data files and save the desired parameters in a dataframe, which then used in reporting.</span>
-<span id="cb9-280"><a href="#cb9-280"></a></span>
-<span id="cb9-281"><a href="#cb9-281"></a>The outcomes of the components are saved in separate <span class="in">`.rds`</span> files and indexed by unique, descriptive names, and each replication is given a unique numeric identifier that is also used as the random seed used to generate the dataset within each replication. The file names and address are stored in two dataframes along with model parameters used to generate each dataset, and these dataframes are used when reading and writing data files in other components.</span>
-<span id="cb9-282"><a href="#cb9-282"></a></span>
-<span id="cb9-283"><a href="#cb9-283"></a><span class="fu">## Wrapper functions</span></span>
-<span id="cb9-284"><a href="#cb9-284"></a></span>
-<span id="cb9-285"><a href="#cb9-285"></a><span class="fu">## Pipeline code</span></span>
-<span id="cb9-286"><a href="#cb9-286"></a></span>
-<span id="cb9-287"><a href="#cb9-287"></a><span class="fu"># Making the figures {#sec-figures}</span></span>
-<span id="cb9-288"><a href="#cb9-288"></a></span>
-<span id="cb9-289"><a href="#cb9-289"></a><span class="fu">## Simulation results</span></span>
-<span id="cb9-290"><a href="#cb9-290"></a></span>
-<span id="cb9-291"><a href="#cb9-291"></a><span class="fu">## Profiles of simulated datasets</span></span>
+<div class="sourceCode" id="cb11" data-shortcodes="false"><pre class="sourceCode numberSource markdown number-lines code-with-copy"><code class="sourceCode markdown"><span id="cb11-1"><a href="#cb11-1"></a><span class="co">---</span></span>
+<span id="cb11-2"><a href="#cb11-2"></a><span class="an">title:</span><span class="co"> "Skewness and staging: Does the floor effect induce bias in multilevel AR(1) models?"</span></span>
+<span id="cb11-3"><a href="#cb11-3"></a><span class="an">subtitle:</span><span class="co"> "Reproducible codes"</span></span>
+<span id="cb11-4"><a href="#cb11-4"></a><span class="an">author:</span><span class="co"> "MH Manuel Haqiqatkhah"</span></span>
+<span id="cb11-5"><a href="#cb11-5"></a><span class="an">format:</span></span>
+<span id="cb11-6"><a href="#cb11-6"></a><span class="co">  html:</span></span>
+<span id="cb11-7"><a href="#cb11-7"></a><span class="co">    code-fold: true</span></span>
+<span id="cb11-8"><a href="#cb11-8"></a><span class="co">    code-tools: true</span></span>
+<span id="cb11-9"><a href="#cb11-9"></a><span class="co">    code-overflow: scroll</span></span>
+<span id="cb11-10"><a href="#cb11-10"></a><span class="co">    code-line-numbers: true</span></span>
+<span id="cb11-11"><a href="#cb11-11"></a><span class="co">    toc: true</span></span>
+<span id="cb11-12"><a href="#cb11-12"></a><span class="co">    toc-location: left</span></span>
+<span id="cb11-13"><a href="#cb11-13"></a><span class="co">    toc-depth: 5</span></span>
+<span id="cb11-14"><a href="#cb11-14"></a><span class="co">    code-summary: "Click to expand the code"</span></span>
+<span id="cb11-15"><a href="#cb11-15"></a><span class="co">    anchor-sections: true</span></span>
+<span id="cb11-16"><a href="#cb11-16"></a><span class="co">    reference-location: document</span></span>
+<span id="cb11-17"><a href="#cb11-17"></a><span class="co">    citation-location: margin</span></span>
+<span id="cb11-18"><a href="#cb11-18"></a><span class="co">  # theme:</span></span>
+<span id="cb11-19"><a href="#cb11-19"></a><span class="co">  #   light: litera</span></span>
+<span id="cb11-20"><a href="#cb11-20"></a><span class="co">  #   dark: darkly</span></span>
+<span id="cb11-21"><a href="#cb11-21"></a><span class="co">  pdf:</span></span>
+<span id="cb11-22"><a href="#cb11-22"></a><span class="co">    number-sections: true</span></span>
+<span id="cb11-23"><a href="#cb11-23"></a><span class="co">    number-depth: 8</span></span>
+<span id="cb11-24"><a href="#cb11-24"></a><span class="co">    toc: true</span></span>
+<span id="cb11-25"><a href="#cb11-25"></a><span class="co">    toc-depth: 8</span></span>
+<span id="cb11-26"><a href="#cb11-26"></a><span class="co">## For html</span></span>
+<span id="cb11-27"><a href="#cb11-27"></a><span class="an">execute:</span></span>
+<span id="cb11-28"><a href="#cb11-28"></a><span class="co">  enabled: true</span></span>
+<span id="cb11-29"><a href="#cb11-29"></a><span class="co">  echo: true</span></span>
+<span id="cb11-30"><a href="#cb11-30"></a><span class="co">  include: true</span></span>
+<span id="cb11-31"><a href="#cb11-31"></a><span class="co">  warning: false</span></span>
+<span id="cb11-32"><a href="#cb11-32"></a><span class="co">  error: false</span></span>
+<span id="cb11-33"><a href="#cb11-33"></a><span class="co">#  freeze: true</span></span>
+<span id="cb11-34"><a href="#cb11-34"></a><span class="co">## For pdf</span></span>
+<span id="cb11-35"><a href="#cb11-35"></a><span class="co"># execute:</span></span>
+<span id="cb11-36"><a href="#cb11-36"></a><span class="co">#   enabled: true</span></span>
+<span id="cb11-37"><a href="#cb11-37"></a><span class="co">#   echo: false</span></span>
+<span id="cb11-38"><a href="#cb11-38"></a><span class="co">#   include: false</span></span>
+<span id="cb11-39"><a href="#cb11-39"></a><span class="co">#   warning: false</span></span>
+<span id="cb11-40"><a href="#cb11-40"></a><span class="co">#   error: false</span></span>
+<span id="cb11-41"><a href="#cb11-41"></a><span class="an">editor:</span><span class="co"> visual</span></span>
+<span id="cb11-42"><a href="#cb11-42"></a><span class="an">bibliography:</span><span class="co"> references.bib</span></span>
+<span id="cb11-43"><a href="#cb11-43"></a><span class="co">---</span></span>
+<span id="cb11-44"><a href="#cb11-44"></a></span>
+<span id="cb11-45"><a href="#cb11-45"></a><span class="fu"># Introduction {#sec-introduction}</span></span>
+<span id="cb11-46"><a href="#cb11-46"></a></span>
+<span id="cb11-47"><a href="#cb11-47"></a>This document contains the reproducible code for the manuscript Skewness and staging: Does the floor effect induce bias in multilevel AR(1) models? by M. M. Haqiqatkhah, O. Ryan, and E. L. Hamaker. please cite as:</span>
+<span id="cb11-48"><a href="#cb11-48"></a></span>
+<span id="cb11-49"><a href="#cb11-49"></a>...</span>
+<span id="cb11-50"><a href="#cb11-50"></a></span>
+<span id="cb11-51"><a href="#cb11-51"></a>In this study, we simulated multilevel data from three data generating mechanisms (DGMs), namely, the AR(1, $\chi^2$AR(1), BinAR(1), and PoDAR(1) models with different parameter sets.\</span>
+<span id="cb11-52"><a href="#cb11-52"></a>For details, see the paper.</span>
+<span id="cb11-53"><a href="#cb11-53"></a></span>
+<span id="cb11-54"><a href="#cb11-54"></a>The simulation was conducted using the following modular pipeline design, inspired by Bien's R package <span class="in">`simulator`</span> <span class="co">[</span><span class="ot">-@bien_2016_SimulatorEngineStreamline</span><span class="co">]</span>, consisting of the following **components**:</span>
+<span id="cb11-55"><a href="#cb11-55"></a></span>
+<span id="cb11-56"><a href="#cb11-56"></a>A.  *Simulation*: generating the datasets</span>
+<span id="cb11-57"><a href="#cb11-57"></a>B.  *Analysis*: modeling the data</span>
+<span id="cb11-58"><a href="#cb11-58"></a>C.  *Harvesting*: collecting the relevant parameter estimates</span>
+<span id="cb11-59"><a href="#cb11-59"></a>D.  *Reporting*: making tables and plots</span>
+<span id="cb11-60"><a href="#cb11-60"></a></span>
+<span id="cb11-61"><a href="#cb11-61"></a>And the components were placed in a **pipeline**, that managed:</span>
+<span id="cb11-62"><a href="#cb11-62"></a></span>
+<span id="cb11-63"><a href="#cb11-63"></a><span class="ss">1.  </span>Making the simulation design matrix that include all relevant conditions</span>
+<span id="cb11-64"><a href="#cb11-64"></a><span class="ss">2.  </span>Book-keeping data files belonging to each replication of each condition</span>
+<span id="cb11-65"><a href="#cb11-65"></a><span class="ss">3.  </span>Performing simulations in batch</span>
+<span id="cb11-66"><a href="#cb11-66"></a><span class="ss">4.  </span>Performing Analyses in batch</span>
+<span id="cb11-67"><a href="#cb11-67"></a><span class="ss">5.  </span>Collecting the data in batch</span>
+<span id="cb11-68"><a href="#cb11-68"></a></span>
+<span id="cb11-69"><a href="#cb11-69"></a>This document is structured as follows. In @sec-components, we explain the four components and the functions used therein. Then, in @sec-pipeline we explain the wrapper functions used in the pipeline, and show how the pipeline was---and can be---executed. Finally, in @sec-figures, we discuss how the harvested data was used to make the figures used in the paper (and others that were not included).</span>
+<span id="cb11-70"><a href="#cb11-70"></a></span>
+<span id="cb11-71"><a href="#cb11-71"></a><span class="co">&lt;!--# In what follows we describe the steps and provide the codes used in this study. In the other tab of this document, we provide the code to generate additional plots shown in the paper. Note that although the codes provided here are cleaned as much as possible, they are not necessarily succinctly written; some functions were written to accommodate the most general functionalities which turned out to be not necessary for the simulation study. --&gt;</span></span>
+<span id="cb11-72"><a href="#cb11-72"></a></span>
+<span id="cb11-73"><a href="#cb11-73"></a>Before we begin, we need to read the scripts to include them in this document. By default, none of the scripts run here (as they are time consuming). To run the scripts of each component, you can change the following variables to <span class="in">`TRUE`</span> and re-render the document:</span>
+<span id="cb11-74"><a href="#cb11-74"></a></span>
+<span id="cb11-77"><a href="#cb11-77"></a><span class="in">```{r}</span></span>
+<span id="cb11-78"><a href="#cb11-78"></a><span class="co">#| eval: true</span></span>
+<span id="cb11-79"><a href="#cb11-79"></a><span class="co">#| code-fold: false</span></span>
+<span id="cb11-80"><a href="#cb11-80"></a>runComponent_Simulation <span class="ot">&lt;-</span> <span class="cn">FALSE</span></span>
+<span id="cb11-81"><a href="#cb11-81"></a>runComponent_Analysis <span class="ot">&lt;-</span> <span class="cn">FALSE</span></span>
+<span id="cb11-82"><a href="#cb11-82"></a>runComponent_Harvesting <span class="ot">&lt;-</span> <span class="cn">FALSE</span></span>
+<span id="cb11-83"><a href="#cb11-83"></a>runComponent_Reporting <span class="ot">&lt;-</span> <span class="cn">FALSE</span></span>
+<span id="cb11-84"><a href="#cb11-84"></a><span class="in">```</span></span>
+<span id="cb11-85"><a href="#cb11-85"></a></span>
+<span id="cb11-86"><a href="#cb11-86"></a>In case you want to change the scripts (e.g., to run a smaller portion of the simulation, or try other parameters, etc.), you should look up the <span class="in">`kintr`</span> parameters called in each chunk (with <span class="in">`&lt;&lt;some_param&gt;&gt;`</span>) and find the corresponding code (under <span class="in">`## @knitr some_param`</span>) in the <span class="in">`scripts`</span> folder.</span>
+<span id="cb11-87"><a href="#cb11-87"></a></span>
+<span id="cb11-90"><a href="#cb11-90"></a><span class="in">```{r}</span></span>
+<span id="cb11-91"><a href="#cb11-91"></a><span class="co">#| label: setup</span></span>
+<span id="cb11-92"><a href="#cb11-92"></a><span class="co">#| echo: false</span></span>
+<span id="cb11-93"><a href="#cb11-93"></a><span class="co">#| include: false</span></span>
+<span id="cb11-94"><a href="#cb11-94"></a><span class="co">#| eval: true</span></span>
+<span id="cb11-95"><a href="#cb11-95"></a></span>
+<span id="cb11-96"><a href="#cb11-96"></a>scripts <span class="ot">&lt;-</span> <span class="fu">list.files</span>(<span class="at">path =</span> <span class="st">"scripts/"</span>,</span>
+<span id="cb11-97"><a href="#cb11-97"></a>                      <span class="at">pattern =</span> <span class="st">".r|.R"</span>,</span>
+<span id="cb11-98"><a href="#cb11-98"></a>                      <span class="at">full.names =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb11-99"><a href="#cb11-99"></a></span>
+<span id="cb11-100"><a href="#cb11-100"></a><span class="fu">sapply</span>(scripts, knitr<span class="sc">::</span>read_chunk)</span>
+<span id="cb11-101"><a href="#cb11-101"></a></span>
+<span id="cb11-102"><a href="#cb11-102"></a>runComponent_Initialization <span class="ot">&lt;-</span> runComponent_Simulation <span class="sc">|</span> runComponent_Analysis <span class="sc">|</span> runComponent_Harvesting <span class="sc">|</span> runComponent_Reporting</span>
+<span id="cb11-103"><a href="#cb11-103"></a></span>
+<span id="cb11-104"><a href="#cb11-104"></a><span class="fu">library</span>(knitr)</span>
+<span id="cb11-105"><a href="#cb11-105"></a></span>
+<span id="cb11-106"><a href="#cb11-106"></a><span class="in">```</span></span>
+<span id="cb11-107"><a href="#cb11-107"></a></span>
+<span id="cb11-108"><a href="#cb11-108"></a><span class="in">```{r, eval = runComponent_Initialization}</span></span>
+<span id="cb11-109"><a href="#cb11-109"></a><span class="co">#| include: false</span></span>
+<span id="cb11-110"><a href="#cb11-110"></a><span class="co">#| eval: true</span></span>
+<span id="cb11-111"><a href="#cb11-111"></a><span class="sc">&lt;</span><span class="er">&lt;</span>load_packages<span class="sc">&gt;</span><span class="er">&gt;</span></span>
+<span id="cb11-112"><a href="#cb11-112"></a><span class="in">```</span></span>
+<span id="cb11-113"><a href="#cb11-113"></a></span>
+<span id="cb11-114"><a href="#cb11-114"></a><span class="fu"># Core components {#sec-components}</span></span>
+<span id="cb11-115"><a href="#cb11-115"></a></span>
+<span id="cb11-116"><a href="#cb11-116"></a><span class="fu">## The *Simulation* component</span></span>
+<span id="cb11-117"><a href="#cb11-117"></a></span>
+<span id="cb11-118"><a href="#cb11-118"></a>The Simulation component consists of three sets of functions:</span>
+<span id="cb11-119"><a href="#cb11-119"></a></span>
+<span id="cb11-120"><a href="#cb11-120"></a>i.  Functions that implement the DGMs and generate univariate ($N=1$) time series of length $T$ from the parameters given to them;</span>
+<span id="cb11-121"><a href="#cb11-121"></a>ii. Wrappers that interface the DGM functions;</span>
+<span id="cb11-122"><a href="#cb11-122"></a>iii. A wrapper to generate datasets (consisting on $N$ time series of length $T$) with a given DGM</span>
+<span id="cb11-123"><a href="#cb11-123"></a></span>
+<span id="cb11-124"><a href="#cb11-124"></a><span class="fu">### Data-generating models specifications</span></span>
+<span id="cb11-125"><a href="#cb11-125"></a></span>
+<span id="cb11-126"><a href="#cb11-126"></a>First we define functions for each data-generating models (DGMs) that can produce univariate, single-subject ($N=1$) time series of desired length $T$ (default: <span class="in">`T = 100`</span>) with the two canonical parameters and a given random seed (default: <span class="in">`seed = 0`</span>). All model(-implied) parameters are saved in a list (called <span class="in">`pa`</span>).</span>
+<span id="cb11-127"><a href="#cb11-127"></a></span>
+<span id="cb11-128"><a href="#cb11-128"></a>For each model, the first observation ($X_1$) is randomly drawn from the model-implied marginal distribution, to eliminate the need for removing the burn-in window in the beginning of the data. After the data is generated, in case the argument <span class="in">`only.ts`</span> is set to be <span class="in">`TRUE`</span>, the raw data (as a vector of length <span class="in">`T`</span>) is returned. Otherwise, the function calculates empirical dynamic ($\phi$) and marginal ($\mu$, $\sigma^2$, and $\gamma$) parameters based on the simulated data, and save it in a list (<span class="in">`Empirical.Parameters`</span>). Furthermore, two <span class="in">`r ifelse(is_html_output(), r"($\mathrm{\LaTeX{}}$)", r"(\LaTeX{})")`</span>-ready strings (<span class="in">`Model.Description`</span> and <span class="in">`Model.Description.Short`</span>) are made which include a summary of the model parameters (that can be used, e.g., in plots). Finally, in case <span class="in">`only.ts != TRUE`</span>, the function returns a list consisting of the time series (stored in <span class="in">`x`</span>), verbal description of the dataset (<span class="in">`Model.Description`</span> and <span class="in">`Model.Description.Short`</span>), theoretical (i.e., model-implied) parameters (<span class="in">`Model.Parameters`</span>), and empirical (i.e., sample) estimated parameters (<span class="in">`Empirical.Parameters`</span>).</span>
+<span id="cb11-129"><a href="#cb11-129"></a></span>
+<span id="cb11-130"><a href="#cb11-130"></a>::: panel-tabset</span>
+<span id="cb11-131"><a href="#cb11-131"></a><span class="fu">#### The AR(1) model</span></span>
+<span id="cb11-132"><a href="#cb11-132"></a></span>
+<span id="cb11-133"><a href="#cb11-133"></a>The canonical parameters of the AR(1) model with normally distributed residuals (which we referred to as <span class="in">`NAR(1)`</span> in the simulation) are the autoregressive parameter $\phi$ (default: <span class="in">`phi = 0.4`</span>), mean $\mu$ (default: <span class="in">`Mean = 50`</span>), and the marginal variance $\sigma^2$ (default: <span class="in">`var.marginal = 4`</span>). Based on the marginal variance, the residual variance (<span class="in">`var.resid`</span>) is calculated via $\sigma^2_\epsilon = \sigma^2 (1 - \phi^2)$.</span>
+<span id="cb11-134"><a href="#cb11-134"></a></span>
+<span id="cb11-135"><a href="#cb11-135"></a><span class="fu">##### Construction</span></span>
+<span id="cb11-136"><a href="#cb11-136"></a></span>
+<span id="cb11-137"><a href="#cb11-137"></a>The time series is constructed by first generating a zero-centered time series $\tilde X_t$ (<span class="in">`x_cent`</span>). To do so, first the initial observation in the time series (<span class="in">`x_cent[1]`</span>) is sampled from normal distribution with mean zero and a variance equal to the marginal variance of the model:</span>
+<span id="cb11-138"><a href="#cb11-138"></a></span>
+<span id="cb11-139"><a href="#cb11-139"></a>$$</span>
+<span id="cb11-140"><a href="#cb11-140"></a>\tilde X_1 \sim \mathcal{N}(0, \sigma^2)</span>
+<span id="cb11-141"><a href="#cb11-141"></a>$$</span>
+<span id="cb11-142"><a href="#cb11-142"></a></span>
+<span id="cb11-143"><a href="#cb11-143"></a>Then, the remainder of the time series is generated using the definition of the AR(1) model (not that the here the residual variance is used in the normal distribution):</span>
+<span id="cb11-144"><a href="#cb11-144"></a></span>
+<span id="cb11-145"><a href="#cb11-145"></a>$$</span>
+<span id="cb11-146"><a href="#cb11-146"></a>\begin{aligned}</span>
+<span id="cb11-147"><a href="#cb11-147"></a>\tilde X_{t} &amp;= \phi \tilde X_{t-1} + \epsilon_{t} <span class="sc">\\</span></span>
+<span id="cb11-148"><a href="#cb11-148"></a>\epsilon_{t} &amp;\sim \mathcal{N}(0, {\sigma^2_{\epsilon}})</span>
+<span id="cb11-149"><a href="#cb11-149"></a>\end{aligned}</span>
+<span id="cb11-150"><a href="#cb11-150"></a>$$ Finally, the mean is added to the centered zero-centered time series to reach the final time series with mean $\mu$:</span>
+<span id="cb11-151"><a href="#cb11-151"></a></span>
+<span id="cb11-152"><a href="#cb11-152"></a>$$</span>
+<span id="cb11-153"><a href="#cb11-153"></a>X_t = \tilde X_t + \mu</span>
+<span id="cb11-154"><a href="#cb11-154"></a>$$</span>
+<span id="cb11-155"><a href="#cb11-155"></a></span>
+<span id="cb11-156"><a href="#cb11-156"></a><span class="fu">##### Code</span></span>
+<span id="cb11-157"><a href="#cb11-157"></a></span>
+<span id="cb11-158"><a href="#cb11-158"></a><span class="in">```{r, eval = runComponent_Simulation}</span></span>
+<span id="cb11-159"><a href="#cb11-159"></a><span class="sc">&lt;</span><span class="er">&lt;</span>dgm_nar<span class="sc">&gt;</span><span class="er">&gt;</span></span>
+<span id="cb11-160"><a href="#cb11-160"></a><span class="in">```</span></span>
+<span id="cb11-161"><a href="#cb11-161"></a></span>
+<span id="cb11-162"><a href="#cb11-162"></a><span class="fu">#### The $\chi^2$AR(1) model</span></span>
+<span id="cb11-163"><a href="#cb11-163"></a></span>
+<span id="cb11-164"><a href="#cb11-164"></a>The canonical parameters of the $\chi^2$AR(1) model (which we referred to as <span class="in">`ChiAR(1)`</span> in the simulation) are the autoregressive parameter $\phi$ (default: <span class="in">`phi = 0.4`</span>), and degrees of freedom $\nu$ (default: <span class="in">`nu = 3`</span>). We set the intercept to zero (<span class="in">`c = 0`</span>).<span class="ot">[^1]</span></span>
+<span id="cb11-165"><a href="#cb11-165"></a></span>
+<span id="cb11-166"><a href="#cb11-166"></a><span class="fu">##### Construction</span></span>
+<span id="cb11-167"><a href="#cb11-167"></a></span>
+<span id="cb11-168"><a href="#cb11-168"></a>Similar to the AR(1) model, we need to sample the first observation of the $\chi^2$AR(1) model from its marginal distribution. However, since this model does not have a closed-form marginal distribution, as an approximation, we instead sample <span class="in">`x[1]`</span> from a $\chi^2$ distribution with $\nu$ degrees of freedom:</span>
+<span id="cb11-169"><a href="#cb11-169"></a></span>
+<span id="cb11-170"><a href="#cb11-170"></a>$$</span>
+<span id="cb11-171"><a href="#cb11-171"></a>X_1 \sim \chi^2(\nu)</span>
+<span id="cb11-172"><a href="#cb11-172"></a>$$</span>
+<span id="cb11-173"><a href="#cb11-173"></a></span>
+<span id="cb11-174"><a href="#cb11-174"></a>Then, we generate the remainder of the time series using the definition of the $\chi^2$AR(1) model:</span>
+<span id="cb11-175"><a href="#cb11-175"></a></span>
+<span id="cb11-176"><a href="#cb11-176"></a>$$</span>
+<span id="cb11-177"><a href="#cb11-177"></a>\begin{aligned}</span>
+<span id="cb11-178"><a href="#cb11-178"></a>X_{t} &amp;= c + \phi X_{t-1} + a_{t} <span class="sc">\\</span></span>
+<span id="cb11-179"><a href="#cb11-179"></a>a_{t} &amp;\sim \chi^2(\nu).</span>
+<span id="cb11-180"><a href="#cb11-180"></a>\end{aligned}</span>
+<span id="cb11-181"><a href="#cb11-181"></a>$$</span>
+<span id="cb11-182"><a href="#cb11-182"></a></span>
+<span id="cb11-183"><a href="#cb11-183"></a><span class="fu">##### Code</span></span>
+<span id="cb11-184"><a href="#cb11-184"></a></span>
+<span id="cb11-185"><a href="#cb11-185"></a><span class="in">```{r, eval = runComponent_Simulation}</span></span>
+<span id="cb11-186"><a href="#cb11-186"></a><span class="sc">&lt;</span><span class="er">&lt;</span>dgm_chiar<span class="sc">&gt;</span><span class="er">&gt;</span></span>
+<span id="cb11-187"><a href="#cb11-187"></a><span class="in">```</span></span>
+<span id="cb11-188"><a href="#cb11-188"></a></span>
+<span id="cb11-189"><a href="#cb11-189"></a><span class="fu">#### The BinAR(1) model</span></span>
+<span id="cb11-190"><a href="#cb11-190"></a></span>
+<span id="cb11-191"><a href="#cb11-191"></a>The canonical parameters of the BinAR(1) model (which we referred to as <span class="in">`BinAR(1)`</span> in the simulation) are the survival probability $\alpha$ (default: <span class="in">`alpha = 0.5`</span>) and the revival probability $\beta$ (default: <span class="in">`beta = 0.4`</span>). By default, the maximum value on scale $k$ was set to <span class="in">`k = 10`</span>.</span>
+<span id="cb11-192"><a href="#cb11-192"></a></span>
+<span id="cb11-193"><a href="#cb11-193"></a><span class="fu">##### Construction</span></span>
+<span id="cb11-194"><a href="#cb11-194"></a></span>
+<span id="cb11-195"><a href="#cb11-195"></a>We first calculate the $\theta$ parameter, which characterizes the marginal distribution of the BinaR(1) model:</span>
+<span id="cb11-196"><a href="#cb11-196"></a></span>
+<span id="cb11-197"><a href="#cb11-197"></a>$$</span>
+<span id="cb11-198"><a href="#cb11-198"></a>\theta = \frac{k \beta}{1-(\alpha-\beta)}</span>
+<span id="cb11-199"><a href="#cb11-199"></a>$$ Then we draw $X_1$ (<span class="in">`x[1]`</span>) from the marginal distribution of the model:</span>
+<span id="cb11-200"><a href="#cb11-200"></a></span>
+<span id="cb11-201"><a href="#cb11-201"></a>$$</span>
+<span id="cb11-202"><a href="#cb11-202"></a>X_1 \sim Binom(k, \theta)</span>
+<span id="cb11-203"><a href="#cb11-203"></a>$$</span>
+<span id="cb11-204"><a href="#cb11-204"></a></span>
+<span id="cb11-205"><a href="#cb11-205"></a>The rest of time series is generated sequentially, for each time point $t$, by drawing values for the number of survived (<span class="in">`S_t[t]`</span>) and revived (<span class="in">`R_t[t]`</span>) elements of the BinAR(1) model based on the previous observations ($X_{t-1}$), and then adding them:</span>
+<span id="cb11-206"><a href="#cb11-206"></a></span>
+<span id="cb11-207"><a href="#cb11-207"></a>$$</span>
+<span id="cb11-208"><a href="#cb11-208"></a>\begin{aligned}</span>
+<span id="cb11-209"><a href="#cb11-209"></a>S_{t} &amp;\sim Binom(X_{t-1}, \alpha) <span class="sc">\\</span></span>
+<span id="cb11-210"><a href="#cb11-210"></a>R_t &amp;\sim Binom(k -X_{t-1}, \beta) <span class="sc">\\</span></span>
+<span id="cb11-211"><a href="#cb11-211"></a>X_{t} &amp;= S_t + R_t</span>
+<span id="cb11-212"><a href="#cb11-212"></a>\end{aligned}</span>
+<span id="cb11-213"><a href="#cb11-213"></a>$$</span>
+<span id="cb11-214"><a href="#cb11-214"></a></span>
+<span id="cb11-215"><a href="#cb11-215"></a><span class="fu">##### Code</span></span>
+<span id="cb11-216"><a href="#cb11-216"></a></span>
+<span id="cb11-217"><a href="#cb11-217"></a><span class="in">```{r, eval = runComponent_Simulation}</span></span>
+<span id="cb11-218"><a href="#cb11-218"></a><span class="sc">&lt;</span><span class="er">&lt;</span>dgm_binar<span class="sc">&gt;</span><span class="er">&gt;</span></span>
+<span id="cb11-219"><a href="#cb11-219"></a><span class="in">```</span></span>
+<span id="cb11-220"><a href="#cb11-220"></a></span>
+<span id="cb11-221"><a href="#cb11-221"></a><span class="fu">#### The PoDAR(1) model</span></span>
+<span id="cb11-222"><a href="#cb11-222"></a></span>
+<span id="cb11-223"><a href="#cb11-223"></a>The canonical parameters of the PoDAR(1) model (which we referred to as <span class="in">`PoDAR(1)`</span> in the simulation) are the persistence probability $\tau$ (default: <span class="in">`tau = 0.7`</span>) and the average rate $\lambda$ (default: <span class="in">`lambda = 0.5`</span>).</span>
+<span id="cb11-224"><a href="#cb11-224"></a></span>
+<span id="cb11-225"><a href="#cb11-225"></a><span class="fu">##### Construction</span></span>
+<span id="cb11-226"><a href="#cb11-226"></a></span>
+<span id="cb11-227"><a href="#cb11-227"></a>To generate the time series, we first draw the first observation $X_1$ (<span class="in">`x[1]`</span>) from a Poisson distribution with rate $\lambda$:</span>
+<span id="cb11-228"><a href="#cb11-228"></a></span>
+<span id="cb11-229"><a href="#cb11-229"></a>$$</span>
+<span id="cb11-230"><a href="#cb11-230"></a>X_1 \sim Poisson(\lambda)</span>
+<span id="cb11-231"><a href="#cb11-231"></a>$$</span>
+<span id="cb11-232"><a href="#cb11-232"></a></span>
+<span id="cb11-233"><a href="#cb11-233"></a>And generate the rest of the time series by first drawing $Z_t$ from a Poisson distribution with rate $\lambda$ and $P_t$ from a binomial distribution with size probability of success $\tau$ (that is equivalent to a Bernoulli distribution with probability $\tau$). Then, we calculate $X_t$ based on the previous observation (<span class="in">`x[t-1]`</span>) and values of $Z_t$ (<span class="in">`Z_t[t]`</span>) and $P_t$ (<span class="in">`P_t[t]`</span>), using the definition of the PoDAR(1) model:</span>
+<span id="cb11-234"><a href="#cb11-234"></a></span>
+<span id="cb11-235"><a href="#cb11-235"></a>$$</span>
+<span id="cb11-236"><a href="#cb11-236"></a>\begin{aligned}</span>
+<span id="cb11-237"><a href="#cb11-237"></a>Z_t &amp;\sim Poisson(\lambda) <span class="sc">\\</span></span>
+<span id="cb11-238"><a href="#cb11-238"></a>P_t &amp;\sim Binom(1, \tau) <span class="sc">\\</span></span>
+<span id="cb11-239"><a href="#cb11-239"></a>X_t &amp;= P_t X_{t-1} + (1-P_t) Z_t</span>
+<span id="cb11-240"><a href="#cb11-240"></a>\end{aligned}</span>
+<span id="cb11-241"><a href="#cb11-241"></a>$$</span>
+<span id="cb11-242"><a href="#cb11-242"></a></span>
+<span id="cb11-243"><a href="#cb11-243"></a><span class="fu">##### Code</span></span>
+<span id="cb11-244"><a href="#cb11-244"></a></span>
+<span id="cb11-245"><a href="#cb11-245"></a><span class="in">```{r, eval = runComponent_Simulation}</span></span>
+<span id="cb11-246"><a href="#cb11-246"></a><span class="sc">&lt;</span><span class="er">&lt;</span>dgm_podar<span class="sc">&gt;</span><span class="er">&gt;</span></span>
+<span id="cb11-247"><a href="#cb11-247"></a><span class="in">```</span></span>
+<span id="cb11-248"><a href="#cb11-248"></a>:::</span>
+<span id="cb11-249"><a href="#cb11-249"></a></span>
+<span id="cb11-250"><a href="#cb11-250"></a><span class="ot">[^1]: </span>The $\chi^2$AR(1), in a more general form, can have an intercept ($X_{t} = c + \phi X_{t-1} + a_t, \quad a_t \sim \chi^2(\nu)$. Since the intercept was set to zero in the simulation study, we discussed a zero-intercept version of this model ($c=0$) in the paper. See the Supplemental Materials for more details.</span>
+<span id="cb11-251"><a href="#cb11-251"></a></span>
+<span id="cb11-252"><a href="#cb11-252"></a><span class="fu">### General DGM wrappers</span></span>
+<span id="cb11-253"><a href="#cb11-253"></a></span>
+<span id="cb11-254"><a href="#cb11-254"></a>Given that, in each model, two canonical parameters characterize the dynamic and marginal features of the generated time series, and given that we have analytic formulas that link the canonical parameters to the model-implied $\phi$, $\mu$, $\sigma^2$, and $\gamma$, we use a function (<span class="in">`dgm_parameterizer`</span>) to calculate canonical parameters from two given parameters, and make a complete list of parameters (called <span class="in">`pa`</span>). This list also includes non-parameter variables, importantly, the time series length $T$ (saved in <span class="in">`pa$T`</span>) and the random seed used in the <span class="in">`dgm_*`</span> functions (saved in <span class="in">`pa$seed`</span>). A wrapper function (<span class="in">`dgm_generator`</span>) is used as an interface to all <span class="in">`dgm_*`</span> functions, which first makes sure the given parameters are sufficient for data generation, makes a complete parameter list <span class="in">`pa`</span> with the help of <span class="in">`dgm_parameterizer`</span>, and passes <span class="in">`pa`</span> to the respective DGM generating function.</span>
+<span id="cb11-255"><a href="#cb11-255"></a></span>
+<span id="cb11-256"><a href="#cb11-256"></a>::: panel-tabset</span>
+<span id="cb11-257"><a href="#cb11-257"></a><span class="fu">#### Parameter conversions</span></span>
+<span id="cb11-258"><a href="#cb11-258"></a></span>
+<span id="cb11-259"><a href="#cb11-259"></a>The function <span class="in">`dgm_parameterizer`</span> calculates canonical/model-implied parameters of a given DGM (specified using the <span class="in">`Model`</span> argument) based on the parameters given to it as arguments, and saves them in a list of parameters (<span class="in">`pa`</span>), which s returned by the function. The function makes sure that the set of parameters provided are sufficient to characterize the dynamic parameter of the model (i.e., the autoregression $\phi$) and at least one of the marginal parameters (importantly, the mean $\mu$) but giving default values to some parameters.</span>
+<span id="cb11-260"><a href="#cb11-260"></a></span>
+<span id="cb11-261"><a href="#cb11-261"></a><span class="in">```{r, eval = runComponent_Simulation}</span></span>
+<span id="cb11-262"><a href="#cb11-262"></a><span class="sc">&lt;</span><span class="er">&lt;</span>dgm_parameterizer<span class="sc">&gt;</span><span class="er">&gt;</span></span>
+<span id="cb11-263"><a href="#cb11-263"></a><span class="in">```</span></span>
+<span id="cb11-264"><a href="#cb11-264"></a></span>
+<span id="cb11-265"><a href="#cb11-265"></a><span class="fu">#### Wrapper around `dgm_*` functions</span></span>
+<span id="cb11-266"><a href="#cb11-266"></a></span>
+<span id="cb11-267"><a href="#cb11-267"></a>The function <span class="in">`dgm_generator`</span> gets a set of parameters (either as separate arguments, or a list of parameters, like the one returned by <span class="in">`dgm_parameterizer`</span>), saves them in a list called <span class="in">`pa`</span>. It checks whether $\phi$ is included in the list (if not, sets the default value <span class="in">`pa$phi = 0.2`</span>), and checks if at least one other parameter (which, together with $\phi$, is required to characterize the marginal properties of the DGMs) is calculated for it (if not, it sets the default value <span class="in">`pa$Mean = 5`</span> for $\mu$). Furthermore, if the DGM name, time series length, and the random seed are not provided, it gives them default values (respectively: <span class="in">`Model = "ChiAR(1)"`</span>, <span class="in">`T = 100`</span>, and <span class="in">`seed = 0`</span>) and adds them to <span class="in">`pa`</span>.</span>
+<span id="cb11-268"><a href="#cb11-268"></a></span>
+<span id="cb11-269"><a href="#cb11-269"></a>Then, it passes the <span class="in">`pa`</span> list to <span class="in">`dgm_parameterizer`</span> to do the necessary conversions to complete the list of canonical and model-implied parameters. Finally, given the model name, it checks if non-canonical parameters $k$ and $c$ are set (otherwise assigns appropriate defaults to them), and passes the complete parameter list to the respective DGM function.</span>
+<span id="cb11-270"><a href="#cb11-270"></a></span>
+<span id="cb11-271"><a href="#cb11-271"></a><span class="in">```{r, eval = runComponent_Simulation}</span></span>
+<span id="cb11-272"><a href="#cb11-272"></a><span class="sc">&lt;</span><span class="er">&lt;</span>dgm_generator<span class="sc">&gt;</span><span class="er">&gt;</span></span>
+<span id="cb11-273"><a href="#cb11-273"></a><span class="in">```</span></span>
+<span id="cb11-274"><a href="#cb11-274"></a>:::</span>
+<span id="cb11-275"><a href="#cb11-275"></a></span>
+<span id="cb11-276"><a href="#cb11-276"></a><span class="fu">### Dataset generation</span></span>
+<span id="cb11-277"><a href="#cb11-277"></a></span>
+<span id="cb11-278"><a href="#cb11-278"></a>The machinery described above can be used to generate individual ($N=1$) time series. However, for the simulation study, we need datasets comprising of multiple ($N=25, 50, 100$) individuals. As we discussed in the paper, in our study, all individuals in a dataset of a DGM share the same autoregressive parameter ($\phi_i=0.4$) and the individual differences are only in the individual means ($\mathbb{\mu} = <span class="co">[</span><span class="ot">\mu_1 , \mu_2, \dots, \mu_N</span><span class="co">]</span>$). Thus, we write a function (<span class="in">`dgm_make.sample`</span>) that can generate, for each DGM, a dataset of $N$ individuals based on an $N$-dimensional vector of individual means, all with the same $\phi_i$. We then need to find the appropriate parameters for the level-2 distributions (Gaussian and $\chi^2$ distributions) for each DGM, such that the we get a considerable proportion of individuals with considerably high skewness while respecting the lower and upper bounds of values supported by each model. Finally, with a wrapper function (<span class="in">`make_datasets`</span>), we facilitate making dataset by automatically generating the means vector suitable for each DGM.</span>
+<span id="cb11-279"><a href="#cb11-279"></a></span>
+<span id="cb11-280"><a href="#cb11-280"></a>::: panel-tabset</span>
+<span id="cb11-281"><a href="#cb11-281"></a><span class="fu">#### Making individual datasets</span></span>
+<span id="cb11-282"><a href="#cb11-282"></a></span>
+<span id="cb11-283"><a href="#cb11-283"></a>The function <span class="in">`dgm_make.sample`</span> generates a dataset of time series of length <span class="in">`T`</span> with the autoregressive parameter <span class="in">`phi`</span> from a desired DGM (determined by the <span class="in">`Model`</span> argument) given a vector of means (passed as the argument <span class="in">`Means`</span>). The length of <span class="in">`Means`</span> determine the number of individuals in the dataset (<span class="in">`N &lt;- length(Means)`</span>). If <span class="in">`Means`</span> is not provided, a randomly generated vector of $N = 100$ is used as default. Since each individual time series is generated with a random seed, we need a vector of <span class="in">`N`</span> unique seeds, which can be provided using the <span class="in">`seeds`</span> argument. In case <span class="in">`seeds`</span> is not provided, it is generated based on the provided means (<span class="in">`seeds.from.means`</span>), and if it is a scalar, the seeds vector is created by adding the scalar to the <span class="in">`seeds.from.means`</span> (which would allow generating different datasets with the same mean distributions).</span>
+<span id="cb11-284"><a href="#cb11-284"></a></span>
+<span id="cb11-285"><a href="#cb11-285"></a><span class="in">```{r, eval = runComponent_Simulation}</span></span>
+<span id="cb11-286"><a href="#cb11-286"></a><span class="sc">&lt;</span><span class="er">&lt;</span>dgm_make.sample<span class="sc">&gt;</span><span class="er">&gt;</span></span>
+<span id="cb11-287"><a href="#cb11-287"></a><span class="in">```</span></span>
+<span id="cb11-288"><a href="#cb11-288"></a></span>
+<span id="cb11-289"><a href="#cb11-289"></a><span class="fu">#### Determining level-2 distribution parameters</span></span>
+<span id="cb11-290"><a href="#cb11-290"></a></span>
+<span id="cb11-291"><a href="#cb11-291"></a>To ensure that the distribution parameters of the</span>
+<span id="cb11-292"><a href="#cb11-292"></a></span>
+<span id="cb11-293"><a href="#cb11-293"></a>For each alternative DGM---the $\chi^2$AR(1), BinAR(1), and PoDAR(1) models---we should determine appropriate parameters for the level-2 distribution of means such that we have enough skewness in the generated datasets. To do so, we make a function (<span class="in">`Mean.vs.Skewness`</span>) to help us experiment with different values for $\mu$ and $\sigma^2$ (of the Gaussian level-2 distribution) and $\nu$ (of the $\chi^2$ level-2 distribution) for each alternative DGM. Note that we start by generating more than enough samples for each distribution ($10 \times N$) and subsample $N$ values after applying the model-specific lower and upper bounds.</span>
+<span id="cb11-294"><a href="#cb11-294"></a></span>
+<span id="cb11-297"><a href="#cb11-297"></a><span class="in">```{r}</span></span>
+<span id="cb11-298"><a href="#cb11-298"></a><span class="co">#| eval: true</span></span>
+<span id="cb11-299"><a href="#cb11-299"></a><span class="sc">&lt;</span><span class="er">&lt;</span>Mean.vs.Skewness<span class="sc">&gt;</span><span class="er">&gt;</span></span>
+<span id="cb11-300"><a href="#cb11-300"></a><span class="in">```</span></span>
+<span id="cb11-301"><a href="#cb11-301"></a></span>
+<span id="cb11-302"><a href="#cb11-302"></a>We notice that we get the desired distribution of skewness with the following parameters:</span>
+<span id="cb11-303"><a href="#cb11-303"></a></span>
+<span id="cb11-304"><a href="#cb11-304"></a>| Model         | $\mu$ | $\sigma^2$ | $\nu$ |</span>
+<span id="cb11-305"><a href="#cb11-305"></a>|---------------|-------|------------|-------|</span>
+<span id="cb11-306"><a href="#cb11-306"></a>| $\chi^2$AR(1) | 10    | 10         | 5     |</span>
+<span id="cb11-307"><a href="#cb11-307"></a>| BinAR(1)      | 2     | 1          | 2.9   |</span>
+<span id="cb11-308"><a href="#cb11-308"></a>| PoDAR(1)      | 4     | 4          | 1.5   |</span>
+<span id="cb11-309"><a href="#cb11-309"></a></span>
+<span id="cb11-310"><a href="#cb11-310"></a>: Parameters of level-2 distribution of means</span>
+<span id="cb11-311"><a href="#cb11-311"></a></span>
+<span id="cb11-312"><a href="#cb11-312"></a>Giving us the following distributions:</span>
+<span id="cb11-313"><a href="#cb11-313"></a></span>
+<span id="cb11-316"><a href="#cb11-316"></a><span class="in">```{r}</span></span>
+<span id="cb11-317"><a href="#cb11-317"></a><span class="co">#| eval: true</span></span>
+<span id="cb11-318"><a href="#cb11-318"></a><span class="co">#| echo: false</span></span>
+<span id="cb11-319"><a href="#cb11-319"></a><span class="co">#| include: false</span></span>
+<span id="cb11-320"><a href="#cb11-320"></a></span>
+<span id="cb11-321"><a href="#cb11-321"></a></span>
+<span id="cb11-322"><a href="#cb11-322"></a>gaussian.means <span class="ot">&lt;-</span></span>
+<span id="cb11-323"><a href="#cb11-323"></a>  <span class="fu">wrap_elements</span>(<span class="fu">Mean.vs.Skewness</span>(<span class="st">"Chi2AR"</span>,</span>
+<span id="cb11-324"><a href="#cb11-324"></a>     <span class="at">l2.mean =</span> <span class="dv">10</span>,</span>
+<span id="cb11-325"><a href="#cb11-325"></a>     <span class="at">l2.var =</span> <span class="dv">10</span>,</span>
+<span id="cb11-326"><a href="#cb11-326"></a>     <span class="at">seed =</span> <span class="dv">1</span>)) <span class="sc">/</span></span>
+<span id="cb11-327"><a href="#cb11-327"></a>  <span class="fu">wrap_elements</span>(<span class="fu">Mean.vs.Skewness</span>(<span class="st">"BinAR"</span>,</span>
+<span id="cb11-328"><a href="#cb11-328"></a>     <span class="at">l2.mean =</span> <span class="dv">2</span>,</span>
+<span id="cb11-329"><a href="#cb11-329"></a>     <span class="at">l2.var =</span> <span class="dv">1</span>,</span>
+<span id="cb11-330"><a href="#cb11-330"></a>     <span class="at">seed =</span> <span class="dv">4</span>)) <span class="sc">/</span></span>
+<span id="cb11-331"><a href="#cb11-331"></a>  <span class="fu">wrap_elements</span>(<span class="fu">Mean.vs.Skewness</span>(<span class="st">"PoDAR"</span>,</span>
+<span id="cb11-332"><a href="#cb11-332"></a>                   <span class="at">l2.mean =</span> <span class="dv">4</span>,</span>
+<span id="cb11-333"><a href="#cb11-333"></a>     <span class="at">seed =</span> <span class="dv">2</span>))</span>
+<span id="cb11-334"><a href="#cb11-334"></a></span>
+<span id="cb11-335"><a href="#cb11-335"></a>chi2.means <span class="ot">&lt;-</span></span>
+<span id="cb11-336"><a href="#cb11-336"></a>  <span class="fu">wrap_elements</span>(<span class="fu">Mean.vs.Skewness</span>(<span class="st">"Chi2AR"</span>,</span>
+<span id="cb11-337"><a href="#cb11-337"></a>     <span class="at">chi2.df =</span> <span class="dv">5</span>,</span>
+<span id="cb11-338"><a href="#cb11-338"></a>     <span class="at">seed =</span> <span class="dv">1</span>)) <span class="sc">/</span></span>
+<span id="cb11-339"><a href="#cb11-339"></a>  <span class="fu">wrap_elements</span>(<span class="fu">Mean.vs.Skewness</span>(<span class="st">"BinAR"</span>,</span>
+<span id="cb11-340"><a href="#cb11-340"></a>     <span class="at">chi2.df =</span> <span class="fl">2.9</span>,</span>
+<span id="cb11-341"><a href="#cb11-341"></a>     <span class="at">seed =</span> <span class="dv">1</span>)) <span class="sc">/</span></span>
+<span id="cb11-342"><a href="#cb11-342"></a>  <span class="fu">wrap_elements</span>(<span class="fu">Mean.vs.Skewness</span>(<span class="st">"PoDAR"</span>,</span>
+<span id="cb11-343"><a href="#cb11-343"></a>                   <span class="at">chi2.df =</span> <span class="fl">1.5</span>,</span>
+<span id="cb11-344"><a href="#cb11-344"></a>     <span class="at">seed =</span> <span class="dv">4</span>))</span>
+<span id="cb11-345"><a href="#cb11-345"></a></span>
+<span id="cb11-346"><a href="#cb11-346"></a><span class="fu">ggsave</span>(<span class="st">"Mean_vs_Skewness.png"</span>,</span>
+<span id="cb11-347"><a href="#cb11-347"></a>       <span class="fu">wrap_elements</span>(gaussian.means) <span class="sc">+</span></span>
+<span id="cb11-348"><a href="#cb11-348"></a>       <span class="fu">wrap_elements</span>(chi2.means),</span>
+<span id="cb11-349"><a href="#cb11-349"></a>       <span class="at">width =</span> <span class="dv">40</span>,</span>
+<span id="cb11-350"><a href="#cb11-350"></a>       <span class="at">height =</span> <span class="dv">60</span>,</span>
+<span id="cb11-351"><a href="#cb11-351"></a>       <span class="at">units =</span> <span class="st">"cm"</span>)</span>
+<span id="cb11-352"><a href="#cb11-352"></a><span class="in">```</span></span>
+<span id="cb11-353"><a href="#cb11-353"></a></span>
+<span id="cb11-354"><a href="#cb11-354"></a><span class="al">![](Mean_vs_Skewness.png)</span></span>
+<span id="cb11-355"><a href="#cb11-355"></a></span>
+<span id="cb11-356"><a href="#cb11-356"></a><span class="fu">#### Automate dataset generation</span></span>
+<span id="cb11-357"><a href="#cb11-357"></a></span>
+<span id="cb11-358"><a href="#cb11-358"></a>We then use a wrapper (<span class="in">`make_datasets`</span>) around <span class="in">`dgm_make.sample`</span> that generates datasets for all four DGMs with the appropriate level-2 parameters specified above. Note that here we first generate more than enough (i.e., $2 \times N$) samples of means to make sure we end up with $N$ samples after applying the upper and lower bounds.</span>
+<span id="cb11-359"><a href="#cb11-359"></a></span>
+<span id="cb11-360"><a href="#cb11-360"></a><span class="in">```{r, eval = runComponent_Simulation}</span></span>
+<span id="cb11-361"><a href="#cb11-361"></a><span class="sc">&lt;</span><span class="er">&lt;</span>make_datasets<span class="sc">&gt;</span><span class="er">&gt;</span></span>
+<span id="cb11-362"><a href="#cb11-362"></a><span class="in">```</span></span>
+<span id="cb11-363"><a href="#cb11-363"></a>:::</span>
+<span id="cb11-364"><a href="#cb11-364"></a></span>
+<span id="cb11-365"><a href="#cb11-365"></a><span class="fu">## The *Analysis* component</span></span>
+<span id="cb11-366"><a href="#cb11-366"></a></span>
+<span id="cb11-367"><a href="#cb11-367"></a>In this component we</span>
+<span id="cb11-368"><a href="#cb11-368"></a></span>
+<span id="cb11-369"><a href="#cb11-369"></a><span class="fu">## The *Harvesting* component</span></span>
+<span id="cb11-370"><a href="#cb11-370"></a></span>
+<span id="cb11-371"><a href="#cb11-371"></a><span class="fu">## The *Reporting* component</span></span>
+<span id="cb11-372"><a href="#cb11-372"></a></span>
+<span id="cb11-373"><a href="#cb11-373"></a><span class="fu"># Pipeline {#sec-pipeline}</span></span>
+<span id="cb11-374"><a href="#cb11-374"></a></span>
+<span id="cb11-375"><a href="#cb11-375"></a>We implemented each of these tasks in separate functions that were essentially wrapper functions (with parallel-computing implementation) around the modular components. Using these wrapper functions, each replication of each simulated condition was saved in a separate <span class="in">`.rds`</span> file. These data files were fed to the analysis wrapper function whose output was saved in separate <span class="in">`.rds`</span> data files. To collect relevant parameter estimates, another wrapper function was used to read the data files and save the desired parameters in a dataframe, which then used in reporting.</span>
+<span id="cb11-376"><a href="#cb11-376"></a></span>
+<span id="cb11-377"><a href="#cb11-377"></a>The outcomes of the components are saved in separate <span class="in">`.rds`</span> files and indexed by unique, descriptive names, and each replication is given a unique numeric identifier that is also used as the random seed used to generate the dataset within each replication. The file names and address are stored in two dataframes along with model parameters used to generate each dataset, and these dataframes are used when reading and writing data files in other components.</span>
+<span id="cb11-378"><a href="#cb11-378"></a></span>
+<span id="cb11-379"><a href="#cb11-379"></a><span class="fu">## Wrapper functions</span></span>
+<span id="cb11-380"><a href="#cb11-380"></a></span>
+<span id="cb11-381"><a href="#cb11-381"></a><span class="fu">## Pipeline code</span></span>
+<span id="cb11-382"><a href="#cb11-382"></a></span>
+<span id="cb11-383"><a href="#cb11-383"></a><span class="fu"># Making the figures {#sec-figures}</span></span>
+<span id="cb11-384"><a href="#cb11-384"></a></span>
+<span id="cb11-385"><a href="#cb11-385"></a><span class="fu">## Simulation results</span></span>
+<span id="cb11-386"><a href="#cb11-386"></a></span>
+<span id="cb11-387"><a href="#cb11-387"></a><span class="fu">## Profiles of simulated datasets</span></span>
 </code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div></div></div></div></div>
 </div> <!-- /content -->
