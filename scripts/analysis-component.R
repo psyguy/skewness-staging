@@ -17,7 +17,7 @@ run_MplusAutomation <- function(df,
   MplusAutomation::prepareMplusData(df,
                                     paste0(inp.name, ".dat"))
 
-  VARIABLE <- glue("CLUSTER = subject;
+  VARIABLE <- glue::glue("CLUSTER = subject;
                       LAGGED = x(1);
                       TINTERVAL = t(1);")
 
@@ -35,27 +35,25 @@ run_MplusAutomation <- function(df,
 
 
   if (model_what == "resid.random")
-    model_string <- glue("%WITHIN%
+    model_string <- glue::glue("%WITHIN%
   	phi | x ON x&1;
   	logv | x;
   	%BETWEEN%
   	x phi logv WITH x phi logv;")
 
   if (model_what == "resid.fixed")
-    model_string <- glue("%WITHIN%
+    model_string <- glue::glue("%WITHIN%
   	phi | x ON x&1;
   	%BETWEEN%
   	x phi WITH x phi;")
 
 
   if (model_what == "within.between") {
-    model_string <- glue("%WITHIN%
+    model_string <- glue::glue("%WITHIN%
   	x;
   	%BETWEEN%
   	x;")
-
     VARIABLE <- "CLUSTER = subject;"
-
     PLOT <- "TYPE = PLOT3;"
 
   }
@@ -65,21 +63,14 @@ run_MplusAutomation <- function(df,
     TITLE = inp.name,
     rdata = df,
     usevariables = c("subject", "t", "x"),
-
     VARIABLE = VARIABLE,
-
     ANALYSIS = ANALYSIS,
-
     MODEL = model_string,
-
     OUTPUT = "TECH1 TECH2 TECH3 TECH8 FSCOMPARISON STANDARDIZED STDYX STDY;",
-
     PLOT = PLOT
   )
 
 
-  # st <- Sys.time()
-  # print(paste(inp.name, "started at", st))
   fit.ar1 <- MplusAutomation::mplusModeler(
     model.ar1,
     check = FALSE,
@@ -87,8 +78,6 @@ run_MplusAutomation <- function(df,
     hashfilename = FALSE,
     run = 1L
   )
-  # print(paste(inp.name, "took", Sys.time() - st))
 
   return(fit.ar1)
-
 }

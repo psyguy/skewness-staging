@@ -11,6 +11,7 @@ format:
     toc: true
     toc-location: left
     toc-depth: 5
+    self-contained: false
     code-summary: "Click to expand the code"
     anchor-sections: true
     reference-location: document
@@ -30,8 +31,8 @@ execute:
   include: true
   warning: false
   error: false
-  freeze: true
-  cache: true
+  freeze: auto
+  cache: refresh
 ## For pdf
 # execute:
 #   enabled: true
@@ -91,7 +92,7 @@ In case you want to change the scripts (e.g., to run a smaller portion of the si
 #| eval: true
 
 scripts <- list.files(path = "scripts/",
-                      pattern = ".r|.R",
+                      # pattern = ".r|.R",
                       full.names = TRUE)
 
 sapply(scripts, knitr::read_chunk)
@@ -104,7 +105,6 @@ library(knitr)
 
 ```{r, eval = runComponent_Initialization}
 #| include: false
-#| eval: true
 <<load_packages>>
 ```
 
@@ -144,7 +144,9 @@ $$
 \tilde X_{t} &= \phi \tilde X_{t-1} + \epsilon_{t} \\
 \epsilon_{t} &\sim \mathcal{N}(0, {\sigma^2_{\epsilon}})
 \end{aligned}
-$$ Finally, the mean is added to the centered zero-centered time series to reach the final time series with mean $\mu$:
+$$
+
+Finally, the mean is added to the centered zero-centered time series to reach the final time series with mean $\mu$:
 
 $$
 X_t = \tilde X_t + \mu
@@ -349,7 +351,7 @@ ggsave("Mean_vs_Skewness.png",
 
 #### Automate dataset generation
 
-We then use a wrapper (`make_datasets`) around `dgm_make.sample` that generates datasets for all four DGMs with the appropriate level-2 parameters specified above. Note that here we first generate more than enough (i.e., $2 \times N$) samples of means to make sure we end up with $N$ samples after applying the upper and lower bounds.
+We then use a wrapper (`make_datasets`) around `dgm_make.sample` that generates datasets for all four DGMs with the appropriate level-2 parameters specified above. Note that here we first generate more than enough (i.e., $2 \times N$) samples of means to make sure we end up with $N$ samples after applying the upper and lower bounds. The datasets are then saved, with some additional variables in separate `.rds` files, using wrapper functions described in @sec-pipeline-wrapper-functions.
 
 ```{r, eval = runComponent_Simulation}
 <<make_datasets>>
@@ -358,91 +360,40 @@ We then use a wrapper (`make_datasets`) around `dgm_make.sample` that generates 
 
 ## The *Analysis* component {#sec-analysis-component}
 
-We analyzed each dataset with the AR(1) model with fixed and random residual variance using *M*plus v. 8.1 [@muthen_2017_MplusUserGuide]. To interface *M*plus from R, we used the package `MplusAutomation` [@hallquist_2018_MplusAutomationPackageFacilitating] and wrote a function (`run_MplusAutomation`) that for each iteration of each condition would save the dataset as a `.dat` file, generate the `.inp` input script for the desired analysis type, and run the model for that dataset:
+We analyzed each dataset with AR(1) models with fixed and random residual variance using *M*plus v. 8.1 [@muthen_2017_MplusUserGuide]. To interface *M*plus from R, we used the package `MplusAutomation` [@hallquist_2018_MplusAutomationPackageFacilitating] and wrote a function (`run_MplusAutomation`) that for each iteration of each condition would save the dataset as a `.dat` file, generate the `.inp` input script for the desired analysis type, and run the model for that dataset.
+*M*plus then saves the output files (`.out` and `.gh5`).
+After the analysis, `run_MplusAutomation` extracts parameter estimates and returns them in an `R` object, which, with some additional variables, are saved in separate `.rds` files using wrapper functions described in @sec-pipeline-wrapper-functions.
 
 ```{r, eval = runComponent_Simulation}
 <<run_MplusAutomation>>
 ```
 
-In each analysis, we simulated two MCMC chains (`CHAINS = 2`), and to reduce autocorrelation in the estimated parameters, by defining `THIN = 5` we asked *M*plus to save every 5th sample. By setting `BITERATIONS = 5000(2000)`, we made sure to have between 2000 to 5000 samples (after thinning) for each parameter from each chain. *M*plus considers the first half of each chain as burn-in samples and discards them, thus, in total, we got at least 2000 "independent" samples from both chains combined. Finally, with `FACTORS = ALL (500)` we asked *M*plus to draw 500 samples for each individuals when estimating level-1 parameters. We visually inspected the traceplots and autocorrelation plots of parameter estimates and of a sample of analyzed datasets and good convergence was observed. Furthermore, to make sure the number of iterations and thinning used in the analyses were sufficient, we re-analyzed two replications of each alternative DGM with Gaussian and $\chi^2$-distributed means with $N=100$ and $T=100$ with `BITERATIONS = 12500(5000)` and `THIN = 20`, which led to estimates of the parameters of interest (`unstd X.WITH.PHI`, `unstd Variances.PHI`, and `stdyx X.WITH.PHI`) almost identical (up to the third decimal) to those estimated with `BITERATIONS = 5000(2000)` and `THIN = 5` (see below).
+In each analysis, we simulated two MCMC chains (`CHAINS = 2`), and to reduce autocorrelation in the estimated parameters, by defining `THIN = 5` we asked *M*plus to save every 5th sample. By setting `BITERATIONS = 5000(2000)`, we made sure to have between 2000 to 5000 samples (after thinning) for each parameter from each chain. *M*plus considers the first half of each chain as burn-in samples and discards them, thus, in total, we got at least 2000 "independent" samples from both chains combined. Finally, with `FACTORS = ALL (500)` we asked *M*plus to draw 500 samples for each individuals when estimating level-1 parameters. We visually inspected the traceplots and autocorrelation plots of parameter estimates and of a sample of analyzed datasets and good convergence was observed. Furthermore, to make sure the number of iterations and thinning used in the analyses provide sufficiently accurate estimates, we re-analyzed two replications of each alternative DGM with Gaussian and $\chi^2$-distributed means with $N=100$ and $T=100$ with `BITERATIONS = 12500(5000)` and `THIN = 20`, which led to estimates of the parameters of interest (`unstd X.WITH.PHI`, `unstd Variances.PHI`, and `stdyx X.WITH.PHI`) almost identical (up to the third decimal) to those estimated with `BITERATIONS = 5000(2000)` and `THIN = 5` (see below).
 
 The generated input files looked like the following. Note that the `TITLE` and `DATA` strings in the `.inp` files are unique to the dataset being analyzed and included the unique dataset seed `uSeed` (passed to `make_datasets` to generate datasets), the number of individuals in the dataset `N`, the length of the time series `T`, the model types used (`resid.fixed` or `resid.random`), and the replication number `Rep` (see @sec-book-keeping for further details).
 
 ::: panel-tabset
 #### Fixed residual variance
 
-    TITLE:
-    fit_uSeed-000000_N-100_T-100_type-resid.fixed_Rep-1
+By estimating the covariances between mean and autoregression (`x phi WITH x phi` under the `BETWEEN%` command), the following *M*plus script runs an AR(1) with random effect mean and autoregressive parameter but with fixed effect residual variance.
 
-    DATA:
-    FILE = "fit_uSeed-000000_N-100_T-100_type-resid.fixed_Rep-1.dat";
-     
-    VARIABLE:
-    NAMES = subject t x;
-    MISSING=.;
-    CLUSTER = subject;
-    LAGGED = x(1);
-    TINTERVAL = t(1);
-
-    ANALYSIS:
-    TYPE = TWOLEVEL RANDOM;
-    ESTIMATOR = BAYES;
-    PROCESSORS = 1;
-    CHAINS = 2;
-    THIN = 5;
-    BITERATIONS = 5000(2000);
-
-    MODEL:
-    %WITHIN%
-    phi | x ON x&1;
-    %BETWEEN%
-    x phi WITH x phi;
-
-    OUTPUT:
-    TECH1 TECH2 TECH3 TECH8 FSCOMPARISON STANDARDIZED STDYX STDY;
-
-    PLOT:
-    TYPE = PLOT3;
-    FACTORS = ALL (500)
+```{inp}
+#| label: Mplus-input_fixed-resid
+#| file: scripts/Mplus-input_fixed-resid.inp
+```
 
 #### Random residual variance
 
-    TITLE:
-    fit_uSeed-000000_N-100_T-100_type-resid.random_Rep-1
+By estimating the logarithm of the residual variance at level 1 (by `logv | x` under the `%WITHIN%` command) and estimating the covariances between the level-2 mean, autoregression, and residual variance (`x phi logv WITH x phi logv` under the `%BETWEEN%` command), the following *M*plus script runs an AR(1) with random effect mean, autoregressive parameter, and residual variance.
 
-    DATA:
-    FILE = "fit_uSeed-000000_N-100_T-100_type-resid.random_Rep-1.dat";
-     
-    VARIABLE:
-    NAMES = subject t x; 
-    MISSING=.;
-    CLUSTER = subject;
-    LAGGED = x(1);
-    TINTERVAL = t(1);
-
-    ANALYSIS:
-    TYPE = TWOLEVEL RANDOM;
-    ESTIMATOR = BAYES;
-    PROCESSORS = 1;
-    CHAINS = 2;
-    THIN = 5;
-    BITERATIONS = 5000(2000);
-
-    MODEL:
-    %WITHIN%
-    phi | x ON x&1;
-    logv | x;
-    %BETWEEN%
-    x phi logv WITH x phi logv;
-
-    OUTPUT:
-    TECH1 TECH2 TECH3 TECH8 FSCOMPARISON STANDARDIZED STDYX STDY;
-
-    PLOT:
-    TYPE = PLOT3;
-    FACTORS = ALL (500);
+```{inp}
+#| label: Mplus-input_random-resid
+#| file: scripts/Mplus-input_random-resid.inp
+```
 
 #### Comparing different `ANALYSIS` parameters
+
+The table below shows the estimated parameters of two replications of with `BITERATIONS = 5000(2000)` and `THIN = 5` (specified in the table with `2k x 5`) and `BITERATIONS = 12500(5000)` and `THIN = 20` (specified in the table with `5k x 20`). The relevant parameters (level-2 correlations `X.WITH.PHI	unstd`, covariances `X.WITH.PHI	stdyx`, and variance `Variances.PHI	unstd`) are highlighted with orange.
 
 ```{=html}
 <iframe width="700" height="500" src="./additional-files/hyperparameters.html" title="Quarto Documentation"></iframe>
@@ -451,7 +402,11 @@ The generated input files looked like the following. Note that the `TITLE` and `
 
 ## The *Harvesting* component {#sec-harvesting-component}
 
+The harvesting component was directly implemented in the parallel function `do_harvest_doFuture` described in @sec-pipeline-wrapper-functions.
+
 ## The *Reporting* component {#sec-reporting-component}
+
+The functions include ...
 
 # Pipeline {#sec-pipeline}
 
@@ -461,9 +416,52 @@ We implemented each of these tasks in separate functions that were essentially w
 
 The outcomes of the components are saved in separate `.rds` files and indexed by unique, descriptive names, and each replication is given a unique numeric identifier that is also used as the random seed used to generate the dataset within each replication. The file names and address are stored in two dataframes along with model parameters used to generate each dataset, and these dataframes are used when reading and writing data files in other components.
 
+
+::: panel-tabset
+#### Simulation file references
+
+```{r, eval = runComponent_Analysis}
+<<make_sim_refs>>
+```
+
+#### Analysis outputs file references
+
+
+```{r, eval = runComponent_Analysis}
+<<make_fit_refs>>
+```
+
+:::
+
 ## Wrapper functions {#sec-pipeline-wrapper-functions}
 
+::: panel-tabset
+#### Simulation in parallel
+
+```{r, eval = runComponent_Analysis}
+<<do_sim_parallel>>
+```
+
+#### Analysis and save in parallel
+
+```{r, eval = runComponent_Analysis}
+<<do_fit_doFuture>>
+```
+
+#### Harvesting in parallel
+
+```{r, eval = runComponent_Analysis}
+<<do_harvest_doFuture>>
+```
+
+
+:::
+
 ## Pipeline code {#sec-pipeline-code}
+
+```{r, eval = runComponent_Analysis}
+<<do_harvest_doFuture>>
+```
 
 # Making the figures {#sec-figures}
 
