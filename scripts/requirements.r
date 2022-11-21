@@ -6,6 +6,7 @@ libs_used <-
     "MplusAutomation",
     "doSNOW",
     "doFuture",
+    "future",
     "here",
     "latex2exp",
     "cowplot",

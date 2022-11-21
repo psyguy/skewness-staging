@@ -7,6 +7,7 @@ format:
     code-fold: true
     code-tools: true
     code-overflow: scroll
+    output-file: "index.html"
     code-line-numbers: true
     toc: true
     toc-location: left
@@ -23,6 +24,7 @@ format:
     number-sections: true
     number-depth: 8
     toc: true
+    output-file: Code documentation
     toc-depth: 8
 ## For html
 execute:
@@ -40,6 +42,8 @@ execute:
 #   include: false
 #   warning: false
 #   error: false
+#   freeze: auto
+#   cache: refresh
 editor: visual
 bibliography: references.bib
 ---
@@ -68,7 +72,7 @@ And the components were placed in a **pipeline**, that managed:
 4.  Performing Analyses in batch
 5.  Collecting the data in batch
 
-This document is structured as follows. In @sec-components, we explain the four components and the functions used therein. Then, in @sec-pipeline we explain the wrapper functions used in the pipeline, and show how the pipeline was---and can be---executed. Finally, in @sec-figures, we discuss how the harvested data was used to make the figures used in the paper (and others that were not included).
+This document is structured as follows. In @sec-components, we explain the four components and the functions used therein. Then, in @sec-pipeline we explain the wrapper functions used in the pipeline, and show how the pipeline was---and can be---executed. Then, in @sec-simulation-results, we discuss how the harvested data was used to make the figures used in the paper (and others that were not included). Finally, in @sec-additional-analyses-and-figures we discuss how supplementary plots were made and how the empirical data analysis (on COGITO data) was done.
 
 <!--# In what follows we describe the steps and provide the codes used in this study. In the other tab of this document, we provide the code to generate additional plots shown in the paper. Note that although the codes provided here are cleaned as much as possible, they are not necessarily succinctly written; some functions were written to accommodate the most general functionalities which turned out to be not necessary for the simulation study. -->
 
@@ -90,6 +94,8 @@ In case you want to change the scripts (e.g., to run a smaller portion of the si
 #| echo: false
 #| include: false
 #| eval: true
+#| cache: false
+#| freeze: false
 
 scripts <- list.files(path = "scripts/",
                       # pattern = ".r|.R",
@@ -360,9 +366,7 @@ We then use a wrapper (`make_datasets`) around `dgm_make.sample` that generates 
 
 ## The *Analysis* component {#sec-analysis-component}
 
-We analyzed each dataset with AR(1) models with fixed and random residual variance using *M*plus v. 8.1 [@muthen_2017_MplusUserGuide]. To interface *M*plus from R, we used the package `MplusAutomation` [@hallquist_2018_MplusAutomationPackageFacilitating] and wrote a function (`run_MplusAutomation`) that for each iteration of each condition would save the dataset as a `.dat` file, generate the `.inp` input script for the desired analysis type, and run the model for that dataset.
-*M*plus then saves the output files (`.out` and `.gh5`).
-After the analysis, `run_MplusAutomation` extracts parameter estimates and returns them in an `R` object, which, with some additional variables, are saved in separate `.rds` files using wrapper functions described in @sec-pipeline-wrapper-functions.
+We analyzed each dataset with AR(1) models with fixed and random residual variance using *M*plus v. 8.1 [@muthen_2017_MplusUserGuide]. To interface *M*plus from R, we used the package `MplusAutomation` [@hallquist_2018_MplusAutomationPackageFacilitating] and wrote a function (`run_MplusAutomation`) that for each iteration of each condition would save the dataset as a `.dat` file, generate the `.inp` input script for the desired analysis type, and run the model for that dataset. *M*plus then saves the output files (`.out` and `.gh5`). After the analysis, `run_MplusAutomation` extracts parameter estimates and returns them in an `R` object, which, with some additional variables, are saved in separate `.rds` files using wrapper functions described in @sec-pipeline-wrapper-functions.
 
 ```{r, eval = runComponent_Simulation}
 <<run_MplusAutomation>>
@@ -370,10 +374,10 @@ After the analysis, `run_MplusAutomation` extracts parameter estimates and retur
 
 In each analysis, we simulated two MCMC chains (`CHAINS = 2`), and to reduce autocorrelation in the estimated parameters, by defining `THIN = 5` we asked *M*plus to save every 5th sample. By setting `BITERATIONS = 5000(2000)`, we made sure to have between 2000 to 5000 samples (after thinning) for each parameter from each chain. *M*plus considers the first half of each chain as burn-in samples and discards them, thus, in total, we got at least 2000 "independent" samples from both chains combined. Finally, with `FACTORS = ALL (500)` we asked *M*plus to draw 500 samples for each individuals when estimating level-1 parameters. We visually inspected the traceplots and autocorrelation plots of parameter estimates and of a sample of analyzed datasets and good convergence was observed. Furthermore, to make sure the number of iterations and thinning used in the analyses provide sufficiently accurate estimates, we re-analyzed two replications of each alternative DGM with Gaussian and $\chi^2$-distributed means with $N=100$ and $T=100$ with `BITERATIONS = 12500(5000)` and `THIN = 20`, which led to estimates of the parameters of interest (`unstd X.WITH.PHI`, `unstd Variances.PHI`, and `stdyx X.WITH.PHI`) almost identical (up to the third decimal) to those estimated with `BITERATIONS = 5000(2000)` and `THIN = 5` (see below).
 
-The generated input files looked like the following. Note that the `TITLE` and `DATA` strings in the `.inp` files are unique to the dataset being analyzed and included the unique dataset seed `uSeed` (passed to `make_datasets` to generate datasets), the number of individuals in the dataset `N`, the length of the time series `T`, the model types used (`resid.fixed` or `resid.random`), and the replication number `Rep` (see @sec-book-keeping for further details).
+The generated input files looked like the following. Note that the `TITLE` and `DATA` strings in the `.inp` files are unique to the dataset being analyzed and included the unique dataset seed `uSeed` (passed to `make_datasets` to generate datasets), the number of individuals in the dataset `N`, the length of the time series `T`, the model types used (`resid.fixed` or `resid.random`), and the replication number `Rep` (see @sec-bookkeeping for further details).
 
 ::: panel-tabset
-#### Fixed residual variance
+### Fixed residual variance
 
 By estimating the covariances between mean and autoregression (`x phi WITH x phi` under the `BETWEEN%` command), the following *M*plus script runs an AR(1) with random effect mean and autoregressive parameter but with fixed effect residual variance.
 
@@ -382,18 +386,18 @@ By estimating the covariances between mean and autoregression (`x phi WITH x phi
 #| file: scripts/Mplus-input_fixed-resid.inp
 ```
 
-#### Random residual variance
+### Random residual variance
 
-By estimating the logarithm of the residual variance at level 1 (by `logv | x` under the `%WITHIN%` command) and estimating the covariances between the level-2 mean, autoregression, and residual variance (`x phi logv WITH x phi logv` under the `%BETWEEN%` command), the following *M*plus script runs an AR(1) with random effect mean, autoregressive parameter, and residual variance.
+By estimating the logarithm of the residual variance at level 1 (by `logv | x` under the `%WITHIN%` command) and estimating the covariances between the level-2 mean, autoregression, and residual variance (`x phi logv WITH x phi logv` under the `%BETWEEN%` command), the following *M*plus script runs an AR(1) model with random effect mean, autoregressive parameter, and residual variance.
 
 ```{inp}
 #| label: Mplus-input_random-resid
 #| file: scripts/Mplus-input_random-resid.inp
 ```
 
-#### Comparing different `ANALYSIS` parameters
+### Comparing different `ANALYSIS` parameters
 
-The table below shows the estimated parameters of two replications of with `BITERATIONS = 5000(2000)` and `THIN = 5` (specified in the table with `2k x 5`) and `BITERATIONS = 12500(5000)` and `THIN = 20` (specified in the table with `5k x 20`). The relevant parameters (level-2 correlations `X.WITH.PHI	unstd`, covariances `X.WITH.PHI	stdyx`, and variance `Variances.PHI	unstd`) are highlighted with orange.
+The table below shows the estimated parameters of two replications of with `BITERATIONS = 5000(2000)` and `THIN = 5` (specified in the table with `2k x 5`) and `BITERATIONS = 12500(5000)` and `THIN = 20` (specified in the table with `5k x 20`). The relevant parameters (level-2 correlations `X.WITH.PHI  unstd`, covariances `X.WITH.PHI stdyx`, and variance `Variances.PHI unstd`) are highlighted with orange.
 
 ```{=html}
 <iframe width="700" height="500" src="./additional-files/hyperparameters.html" title="Quarto Documentation"></iframe>
@@ -412,59 +416,107 @@ The functions include ...
 
 We implemented each of these tasks in separate functions that were essentially wrapper functions (with parallel-computing implementation) around the modular components. Using these wrapper functions, each replication of each simulated condition was saved in a separate `.rds` file. These data files were fed to the analysis wrapper function whose output was saved in separate `.rds` data files. To collect relevant parameter estimates, another wrapper function was used to read the data files and save the desired parameters in a dataframe, which then used in reporting.
 
-## Book-keeping {#sec-book-keeping}
+## Book-keeping {#sec-bookkeeping}
 
 The outcomes of the components are saved in separate `.rds` files and indexed by unique, descriptive names, and each replication is given a unique numeric identifier that is also used as the random seed used to generate the dataset within each replication. The file names and address are stored in two dataframes along with model parameters used to generate each dataset, and these dataframes are used when reading and writing data files in other components.
 
-
 ::: panel-tabset
-#### Simulation file references
+### Simulation file references {#sec-bookkeeping-simulation-files}
+
+The function `make_sim_refs` makes a table consisting of all possible combinations of each conditions (that are provided as a list `conditions`), and replicates it `Reps` times (number of replications, $R = 100$). Then, to make sure that each simulated dataset is produced with a unique random seed, the function generates a unique `uSeed` based on the number (and values) of conditions and the replication number. Furthermore, an initial simulation seed (`simSeed`) is included in generation of `uSeed` which makes it possible to have different *batches* of simulations (for instance, if one wants to run the simulation for another 1000 times).
+
+For each condition, a unique seed is generated by weighting different conditions (that are indexed in a vector `d.integer`) by prime numbers (that are not among the prime factors of the number of conditions) and summing them up (which is done with dot-producting `d.integer %*% primes.seq`). Then, to make unique seeds per replications, the replication number is concatenated to the left side of `d.integer %*% primes.seq`, and everything is put into a dataframe (called `d.headers`, that is eventually returned by the function) with unique file names for individual `.rds` files (that include `uSeed` as well as the replication number and the value of condition used in data generation, e.g., `sim_uSeed-13293_l2.dist-Chi2_Model-BinAR_N-100_phi-0.4_T-100_sim.Seed-0_Rep-1`) and the address of the folder in which the `.rds` files were stored. Finally, if desired, the simulation reference table `d.headers` is saved as `.csv` and `.rds`.
 
 ```{r, eval = runComponent_Analysis}
 <<make_sim_refs>>
 ```
 
-#### Analysis outputs file references
+[***Note that***]{.underline} initially, we started by having two values for the length of the time series ($T = 30$ corresponding to one month of measurements, and $T = 100$ for a reasonably long time series) and one sample size ($N = 100$, and subsample the datasets for $N = 25$ and $N = 50$), and we decided to include five DGMs in the simulations: the AR(1), $\chi^2$AR(1), BinAR(1), PoDAR(1) models, and a DAR(1) model with binomial marginal distribution). Eventually (and midway through the simulations), we decided to omit the $T = 30$ condition and the DAR(1) model from our simulation. However, as omitting these would have led to change in the calculations of `uSeed`, we decided to keep it the simulation reference table intact and omit `Model == "DAR"` and `T == 30` later on (see @sec-pipeline-code for details).
 
+[***Further note that***]{.underline} we only generated datasets with $N = 100$ and $T = 100$, and sub-sampled other sample sizes and time series lengths ($N = 25, 50$ and $T = 25, 50$) from them. Although this had computational benefits (less simulation time, and less storage required), the main motivation behind this decision was to be able to mimic empirical data collection: Sub-sampling the large datasets would be equated with collecting less data than the ideal case in which we have many participants with many measurements (so sub-sampling what *could have been* collected). Furthermore, comparing the datasets with the same DGM and level-2 distribution would be more meaningful: All datasets with same `Rep` value within the same DGM (say, PoDAR(1) model) and with the same level-2 distribution (say, $\chi^2$ distribution) have the same `uSeed`, thus they can be matched. Consequently, the differences we observe for different $N$s and $T$s within each cell of the figures reported in the paper can mimic the effect of "non-ideal" sampling.
+
+Changing the conditions (omitting `Model == "DAR"` and `T == 30` from the simulation reference dataset, and adding additional conditions for `N` and `T`) is done when running the pipeline (see @sec-pipeline-code) and the sub-sampling is implemented when running the analysis in `do_fit_doFuture` (see @sec-pipeline-functions).
+
+### Analysis outputs file references {#sec-bookkeeping-analysis-files}
+
+Another dataframe was generated to include the references of analyses results per simulation condition and analysis condition (or *hyperparameter*s), and file names and directory of individual `.rds` analysis outputs. The hyperparameters included the analysis type (with fixed vs. random residual variance) and the number of iterations and thinning in the MCMC algorithm, which were then used as arguments of `run_MplusAutomation`.
 
 ```{r, eval = runComponent_Analysis}
 <<make_fit_refs>>
 ```
-
 :::
 
-## Wrapper functions {#sec-pipeline-wrapper-functions}
+## Pipeline functions {#sec-pipeline-functions}
+
+We implemented the components described in @sec-components using the following functions.
 
 ::: panel-tabset
-#### Simulation in parallel
+### Simulation in parallel
+
+The function `do_sim_parallel` is a wrapper around `make_datasets` that uses the `clusterApplyLB` function from the package `snow` [@tierney_2021_SnowSimpleNetwork] for parallelization. This wrapper gets the dataframe of simulation file references (`sim_refs`, which is the output of `make_sim_refs`), and for each of its rows, simulates an $N \times T$ dataframe and stores it with other information in the same row---and also additional info about the time the simulating the dataset started and ended---in a list, and saves each list as a separate `.rds` file in the target folder (specified with `sim.Path`). Having the additional data in the saved files allow using them independent from the table of references. Note that to prevent the overload of the hard drive with many parallel write requests (to save the simulated datasets), for the first `nClust` rounds, using the `Sys.sleep` function, the data generation is started after a varying amount of delay.
 
 ```{r, eval = runComponent_Analysis}
 <<do_sim_parallel>>
 ```
 
-#### Analysis and save in parallel
+### Analysis in parallel
+
+The function `do_fit_doFuture` is a wrapper around `run_MplusAutomation` that uses the package `doFuture` [@bengtsson_2021_UnifyingFrameworkParallel] as a parallelization backend to `plyr::a_ply`. The function gets a dataframe containing references of analyses results (`fit_refs`, which is the output of `make_fit_refs`), and row by row reads the simulated datasets, sub-samples the data if $N < 100$ or $T < 100$ (see the second note under `make_sim_refs` in @sec-bookkeeping) and runs the analysis based on the hyperparameters specified in `fit_refs`. It then saves the outcome of the analysis (the *M*plus model object produced by `MplusAutomation::mplusModeler` and returned by `run_MplusAutomation`), which includes *M*plus outputs and parameter estimates) with additional information (other values in the same row of `fit_refs` as well as timings) in separate `.rds` files in the target folder. Note that, again, to prevent the overload of the hard drive with many parallel read and write requests (to read the simulated datasets and save the *M*plus outputs), for the first `nClust` rounds, using the `Sys.sleep` function, the data analysis is started after a varying amount of delay.
 
 ```{r, eval = runComponent_Analysis}
 <<do_fit_doFuture>>
 ```
 
-#### Harvesting in parallel
+### Extracting parameter estimates of individual analyses
+
+The function `fit_extract` gets an `.rds` file and extracts the `unstandardized` and `stdyx.standardized` *M*plus parameter estimates and the additional book-keeping information saved by `do_fit_doFuture` and stores them in a dataframe.
+
+```{r, eval = runComponent_Analysis}
+<<fit_extract>>
+```
+
+### Harvesting in parallel
+
+The function `do_harvest_doFuture` is a wrapper around `fit_extract` that uses the package `doFuture` as a parallelization backend to `foreach`. It gets a list of `.rds` files (that can be taken from or `fit_refs`, or by using `list.files` function in the directory in which the analysis results are saved) and returns a large dataframe including parameter estimates (and additional information) extracted by `fit_extract`.
 
 ```{r, eval = runComponent_Analysis}
 <<do_harvest_doFuture>>
 ```
-
-
 :::
 
 ## Pipeline code {#sec-pipeline-code}
 
+The following is the code we used to run the whole pipeline, which consists of two chunk: One that creates the book-keeping reference files (using functions described in @sec-bookkeeping), and another that runs the whole simulation study (using functions described in @sec-pipeline-functions).
+
+::: panel-tabset
+## Making references
+
+The following code makes `sim_refs` and `fit_refs` tables and make backups of them. In line 17 the rows with `T != 100` and `Model == "DAR"` are omitted, and with the codes in lines 22-31 we add other values of $N$s and $T$s (see the notes under `make_sim_refs` in @sec-bookkeeping).
+
 ```{r, eval = runComponent_Analysis}
-<<do_harvest_doFuture>>
+<<pipeline_make_references>>
 ```
 
-# Making the figures {#sec-figures}
+## Running the study
 
-## Simulation results
+Here we reads the reference tables `sim_refs` and `fit_refs`. We then make a list of already simulated files (that are located in the `sim.Path` directory) and a list of analysis output files (that are located in the `fit.Path` directory). Then, by comparing `sim_refs` and `fit_refs` with the the lists of simulated and analyzed files, we only simulate/analyze the datasets that have not been yet simulated/analyzed. This allows us resume the simulation study after an interruption to the R session.
 
-## Profiles of simulated datasets
+```{r, eval = runComponent_Analysis}
+<<pipeline_run_study>>
+
+```
+:::
+
+```{r, eval = runComponent_Analysis}
+<<complete_pipeline>>
+```
+
+## Simulation results {#sec-simulation-results}
+
+The simulation results were
+
+# Additional analyses and figures {#sec-additional-analyses-and-figures}
+
+## Profiles of simulated datasets {#sec-profiles-of-simulated-datasets}
+
+## COGITO data analysis {#sec-cogito-data-analysis}

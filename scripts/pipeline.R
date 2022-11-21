@@ -8,7 +8,7 @@ make_sim_refs <-
                              phi = c(0.4)
   ),
   Reps = 100,
-  seed = 0,
+  simSeed = 0,
   save.directory = "self-sim",
   save.refs.filename = paste("sim_refs",
                              Sys.Date()),
@@ -29,7 +29,7 @@ make_sim_refs <-
     # sorting conditions alphabetically
     conditions <- conditions[order(names(conditions))]
 
-    conditions$sim.Seed <- seed
+    conditions$simSeed <- simSeed
     conditions$Rep <- Reps
 
     n.conditions <- length(conditions)
@@ -103,27 +103,28 @@ make_sim_refs <-
 
     d <- d.headers
 
-    # getting rid of factors
-    factor.columns <- sapply(d, is.factor)
-    d[factor.columns] <-
+    # getting rid of factors and making them into strings
+    factor.columns <- sapply(d.headers, is.factor)
+    d.headers[factor.columns] <-
       sapply(d[factor.columns], as.character)
 
     # making uSeed numeric
-    d$uSeed <- d$uSeed %>% as.numeric()
+    d.headers$uSeed <- d.headers$uSeed %>% as.numeric()
 
-    # Save the references data frame to a file
+    # Save the references dataframe to a file, if desired
     if(!is.null(save.refs.filename)){
-      saveRDS(d,
+      saveRDS(d.headers,
               file = here::here(save.directory, paste0(save.refs.filename,
                                                        ".rds"))
       )
-      write.csv(d,
+      write.csv(d.headers,
                 file = here::here(save.directory, paste0(save.refs.filename,
                                                          ".csv")),
                 row.names = FALSE)
     }
 
-    return(d)
+    # return the reference dataframe
+    return(d.headers)
   }
 
 ## @knitr make_fit_refs
@@ -199,6 +200,7 @@ make_fit_refs <-
 ## @knitr do_sim_parallel
 
 
+
 do_sim_parallel <-
   function(sim_refs,
            nClust = 48,
@@ -207,9 +209,7 @@ do_sim_parallel <-
            clusterLOG.filename = paste0("sim_clusterLOG_",
                                         Sys.Date(),
                                         ".txt"),
-           sleeptime = 1 # seconds to wait before running clusters
-  ){
-
+           sleeptime = 1) {
     cl <- snow::makeSOCKcluster(nClust,
                                 outfile = here::here(save.directory,
                                                      clusterLOG.filename))
@@ -222,61 +222,41 @@ do_sim_parallel <-
 
     snow::clusterExport(cl,
                         c("d",
-                          #"make_datasets",
                           "alternative.sim.Path",
                           "debug"),
                         envir = environment())
-    t.snow <- snow::snow.time({
 
+    ## Get the timings
+
+    t.snow <- snow::snow.time({
+      ## Run the cluster
       snow::clusterApplyLB(cl = cl,
                            seq_len(nrow(d)),
                            function(i) {
+                             if (i <= nClust)
+                               Sys.sleep(sleeptime * i)
 
-                             Sys.sleep(sleeptime*(i %% nClust))
-
-                             source(here::here("functions",
-                                               "functions_data-generating-models.R"))
-                             library(tidyverse)
-
-                             # if (debug) {
-                             #   cat("\nRunning iteration:",
-                             #       i,
-                             #       " / ",
-                             #       nrow(d),
-                             #       "\nTime:",
-                             #       as.character(Sys.time()),
-                             #       "\n")
-                             #   print(d$sim.File)
-                             # }
-
-
-                             d_i <- as.list(d[i, ])
+                             d_i <- as.list(d[i,])
                              arguments <-
                                as.list(d_i[2:(length(d_i) - 4)])
                              arguments$seed <- d_i$uSeed
 
-                             sim.Path <- ifelse(is.null(alternative.sim.Path),
-                                                d_i$sim.Path,
-                                                alternative.sim.Path)
+                             sim.Path <-
+                               ifelse(is.null(alternative.sim.Path),
+                                      d_i$sim.Path,
+                                      alternative.sim.Path)
 
                              sim.StartTime <- Sys.time()
 
-                             # tryRes <-
-                             #   try(
+                             output.dataset <-
+                               do.call(make_datasets,
+                                       arguments)
 
-                             output.dataset <- do.call(make_datasets,
-                                                       arguments)
-                             # )
-                             # if (is(tryRes,"try-error")){
-                             #   if (debug){
-                             #     browser()
-                             #   }
-                             #   return(list(error = TRUE, errorMessage = as.character(tryRes), id = d$id[i]))
-                             # }
                              d_i$sim.Dataset <- output.dataset
                              d_i$sim.StartTime <- sim.StartTime
                              d_i$sim.EndTime <- Sys.time()
-                             d_i$sim.ElapsedTime <- d_i$sim.EndTime - d_i$sim.StartTime
+                             d_i$sim.ElapsedTime <-
+                               d_i$sim.EndTime - d_i$sim.StartTime
 
                              saveRDS(d_i,
                                      file = here::here(sim.Path,
@@ -285,7 +265,8 @@ do_sim_parallel <-
                            })
 
     })
-    # Stop the cluster:
+
+    ## Stop the cluster:
     snow::stopCluster(cl)
 
     return(t.snow)
@@ -296,96 +277,157 @@ do_sim_parallel <-
 ## @knitr do_fit_doFuture
 
 
-do_fit_doFuture <-
-  function(fit_refs,
-           nClust = 48,
-           nPROC = 1,
-           save.directory = "self-sim",
-           alternative.fit.Path = NULL,
-           # model_what = "resid.random",
-           clusterLOG.filename = paste0("fit_clusterLOG_",
-                                        Sys.Date(),
-                                        ".txt"),
-           sleeptime = 1 # seconds to wait before running clusters
-  ){
 
-    source(here::here("functions",
-                      "functions_Mplus.R"))
+do_fit_doFuture <- function(fit_refs,
+                            nClust = 48,
+                            nPROC = 1,
+                            save.directory = "self-sim",
+                            alternative.fit.Path = NULL,
+                            # model_what = "resid.random",
+                            clusterLOG.filename = paste0("fit_clusterLOG_",
+                                                         Sys.Date(),
+                                                         ".txt"),
+                            sleeptime = 1) {
 
-
-
-    debug <- TRUE
-
-    d <- fit_refs
-
-    registerDoFuture()
-
-    plan("multisession")
+  ## To make sure the required functions are loaded on each cluster
+  library(tidyverse)
+  source(here::here("scripts",
+                    "analysis-component.R"))
 
 
-    plyr::a_ply(d,
-                # "uSeed",
-                1,
-                # base::transform,
-                function(d_i){
-
-                  # if(i<=nClust) Sys.sleep(sleeptime*i)
-
-                  d_i <- as.list(d_i)
-
-                  fit.StartTime <- Sys.time()
-
-                  df <- readRDS(file = here::here(d_i$sim.Path,
-                                                  d_i$sim.File))$sim.Dataset %>%
-                    filter(subject <=d_i$N,
-                           t <= d_i$T)
-                  file.name <- gsub(".rds", "", d_i$fit.File)
-
-                  print(paste(file.name,
-                              "started at",
-                              fit.StartTime)
-                  )
-
-                  tryRes <-
-                    try(
-                      output.fit <- run_MplusAutomation(df = df,
-                                                        PROCESSORS = nPROC,
-                                                        BITERATIONS.min = d_i$iter,
-                                                        THIN = d_i$thin,
-                                                        model_what = d_i$type,
-                                                        file.name = file.name)
-                    )
-
-                  d_i$fit.Dataset <- tryRes # output.fit
-                  d_i$fit.StartTime <- fit.StartTime
-                  d_i$fit.EndTime <- Sys.time()
-                  d_i$fit.ElapsedTime <- d_i$fit.EndTime - d_i$fit.StartTime
-
-                  fit.Path <- ifelse(is.null(alternative.fit.Path),
-                                     d_i$fit.Path,
-                                     alternative.fit.Path)
-
-                  saveRDS(d_i,
-                          file = here::here(fit.Path,
-                                            d_i$fit.File))
-
-                  # return(paste("Running iteration:",
-                  #              i,
-                  #              " / ",
-                  #              nrow(d),
-                  #              "Time:",
-                  #              as.character(Sys.time())))
-
-                  print(paste(file.name,
-                              "finished at",
-                              d_i$fit.EndTime)
-                  )                  # return(d_i)
-                },
-                .parallel = TRUE)
 
 
-  }
+  debug <- TRUE
 
+  d <- fit_refs
+
+  registerDoFuture()
+
+  plan("multisession")
+
+
+  plyr::a_ply(d,
+              1,
+              function(d_i) {
+                if (i <= nClust)
+                  Sys.sleep(sleeptime * i)
+
+                d_i <- as.list(d_i)
+
+                fit.StartTime <-
+                  Sys.time()
+
+                df <-
+                  readRDS(file = here::here(d_i$sim.Path,
+                                            d_i$sim.File))$sim.Dataset %>%
+                  filter(subject <= d_i$N,
+                         t <= d_i$T)
+
+                file.name <-
+                  gsub(".rds", "", d_i$fit.File)
+
+                print(paste(file.name,
+                            "started at",
+                            fit.StartTime))
+
+                tryRes <-
+                  try(output.fit <-
+                        run_MplusAutomation(
+                          df = df,
+                          PROCESSORS = nPROC,
+                          BITERATIONS.min = d_i$iter,
+                          THIN = d_i$thin,
+                          model_what = d_i$type,
+                          file.name = file.name
+                        ))
+
+                d_i$fit.Dataset <-
+                  tryRes
+                d_i$fit.StartTime <-
+                  fit.StartTime
+                d_i$fit.EndTime <-
+                  Sys.time()
+                d_i$fit.ElapsedTime <-
+                  d_i$fit.EndTime - d_i$fit.StartTime
+
+                fit.Path <-
+                  ifelse(is.null(alternative.fit.Path),
+                         d_i$fit.Path,
+                         alternative.fit.Path)
+
+                saveRDS(d_i,
+                        file = here::here(fit.Path,
+                                          d_i$fit.File))
+
+                print(paste(file.name,
+                            "finished at",
+                            d_i$fit.EndTime))
+              },
+              .parallel = TRUE)
+
+
+}
+
+
+## @knitr fit_extract
+
+fit_extract <- function(rds.file){
+
+  m <- readRDS(rds.file)
+  est.par <- m[["fit.Dataset"]][["results"]][["parameters"]]
+
+  # make empty dataframe for NAs
+  empty <- data.frame(matrix(ncol = 19, nrow = 0))
+  colnames(empty) <- c("uSeed", "type", "l2.dist", "Model", "N", "phi", "T",
+                       "Rep", "standardization", "est", "posterior_sd", "pval",
+                       "lower_2.5ci", "upper_2.5ci", "sig", "BetweenWithin",
+                       "param.name", "fit.ElapsedTime", "fit.File")
+
+  if(length(est.par) == 0) return(empty)
+  if(is.null(est.par[["unstandardized"]])) return(empty)
+  if(is.null(est.par[["stdyx.standardized"]])) return(empty)
+
+  unstd <- est.par[["unstandardized"]] %>%
+    mutate(param.name = paste(paramHeader,
+                              param,
+                              sep = ".")
+    ) %>%
+    select(-paramHeader:-param) %>%
+    mutate(standardization = "unstd",
+           .before = est)
+  stdyx <- est.par[["stdyx.standardized"]] %>%
+    mutate(param.name = paste(paramHeader,
+                              param,
+                              sep = ".")
+    ) %>%
+    select(-paramHeader:-param) %>%
+    mutate(standardization = "stdyx",
+           .before = est)
+
+  m$fit.Dataset <- NULL
+
+  res <- unstd %>%
+    rbind(stdyx) %>%
+    mutate(fit.ElapsedTime = (difftime(m[["fit.EndTime"]],
+                                       m[["fit.StartTime"]],
+                                       units="mins")
+    ) %>%
+      as.numeric(),
+    fit.File = gsub(".*/", "", m$fit.File)) %>%
+    mutate(uSeed = m$uSeed,
+           type = m$type,
+           l2.dist = m$l2.dist,
+           Model = m$Model,
+           N = m$N,
+           phi = m$phi,
+           T = m$T,
+           Rep = m$Rep,
+           .before = standardization
+    )
+
+  return(res)
+
+}
 
 ## @knitr do_harvest_doFuture
 
@@ -404,73 +446,46 @@ do_harvest_doFuture <- function(fit.files){
   return(results)
 }
 
-## @knitr complete_pipe
+## @knitr pipeline_make_references
 
-source(here::here("functions",
-                  "functions_self-sim-pipeline.R"))
+sim_refs_base <- make_sim_refs(
+  conditions = list(
+    T = c(30, 100),
+    N = c(100),
+    Model = c("BinAR",
+              "Chi2AR",
+              "DAR",
+              "PoDAR",
+              "NAR"),
+    l2.dist = c("Gaussian",
+                "Chi2"),
+    phi = c(0.4)
+  ),
+  simSeed = 0,
+  Reps = 1000,
+  save.directory = "simulation-files/sim-files"
+) %>%
+  filter(T == 100, Model != "DAR")
 
-#' We need to
-#'  1. remake `sim_refs` to include NAR
-#'  2. simulate NAR for N=100, T=100 in `simulation-files/sim-files`
-#'  3. make reference table `fit_refs`
-#'
-#' Then need to subset the sim files for smaller N & T, and update the fit
-#' reference table (`fit_refs`) such that the subset N & T values are included
-#' in fit the file names (and respective Mplus files)
-#'
-#' I do this by:
-#'  1. First making a `sim_refs` with smaller N & T (25, 50, 100) while
-#' keeping uSeed intact, and then
-#'  2. Change the `make_fit_refs` function such that the fit.File includes
-#' N and T values, and finally
-#'  3. Change `do_fit_parallel` to subset sim datasets prior to fitting.
-#'
-#' Note that we are no longer interested in DAR, so they should be left out.
-#'
+## Adding another values for N and T; see the text
 
+sim_refs <- NULL
 
-## Making the dataframe of simulation reference files
+for (TT in c(25, 50, 100)) {
+  for (NN in c(25, 50, 100)) {
+    sim_refs <- sim_refs_base %>%
+      mutate(N = NN,
+             T = TT) %>%
+      rbind(sim_refs)
+  }
+}
 
-sim_refs <- make_sim_refs(conditions = list(T = c(30, 100),
-                                                     N = c(100),
-                                                     Model = c("BinAR",
-                                                               "Chi2AR",
-                                                               "DAR",
-                                                               "PoDAR",
-                                                               "NAR"),
-                                                     l2.dist = c("Gaussian",
-                                                                 "Chi2"),
-                                                     phi = c(0.4)
-),
-save.directory = "simulation-files/sim-files",
-Reps = 1000)
 
 ## Making a backup of the dataframe of simulation reference files
 
 saveRDS(sim_refs,
         here::here("simulation-files/refs",
-                   "sim-refs_Model-BinAR.ChiAR.DAR.PoDAR.NAR_N-100_T-30.100.rds")
-)
-
-## Reading the backup of the dataframe of simulation reference files
-
-sim_refs.big <- readRDS(
-  here::here(
-    "simulation-files/refs",
-    "sim-refs_Model-BinAR.ChiAR.DAR.PoDAR.NAR_N-100_T-30.100.rds"
-  )
-)
-
-## Running the simulation
-
-Sys.time()
-system.time(
-  t.sim <- do_sim_parallel(sim_refs = sim_refs_only.NAR,
-                           save.directory = "simulation-files/sim-files"
-  )
-)
-Sys.time()
-
+                   "sim-refs.rds"))
 
 ## Making the dataframe of analysis output reference files
 
@@ -482,26 +497,41 @@ fit_refs <- make_fit_refs(sim_refs = sim_refs,
 
 saveRDS(fit_refs,
         here::here("simulation-files/refs",
-                   "fit-refs_Model-BinAR.ChiAR.PoDAR.NAR_N-25.50.100_T-25.50.100_iter-2000_thin-5_type-resid.fixed.random.rds")
-)
+                   "fit-refs.rds"))
 
+## Reading the backup of the dataframe of simulation reference files
+
+sim_refs.big <- readRDS(here::here("simulation-files/refs",
+                                   "sim-refs.rds"))
+
+## Running the simulation
+
+Sys.time()
+system.time(
+  t.sim <- do_sim_parallel(sim_refs = sim_refs,
+                           save.directory = "simulation-files/sim-files")
+)
+Sys.time()
+
+
+## @knitr pipeline_run_study
 
 ## Reading the backup of the dataframe of analysis output reference files
 
 fit_refs <- readRDS(here::here("simulation-files/refs",
-                               "fit-refs_Model-BinAR.ChiAR.PoDAR.NAR_N-25.50.100_T-25.50.100_iter-2000_thin-5_type-resid.fixed.random.rds")
-)
+                               "fit-refs.rds"))
 
 
 ## Running the analysese in parallel
 
 Sys.time()
 system.time(
-  t.fit <- do_fit_doFuture(fit_refs = fit_refs_remaining,
-                           nClust = 48,
-                           nPROC = 1,
-                           sleeptime = 3,
-                           save.directory = "simulation-files/fit-files"
+  t.fit <- do_fit_doFuture(
+    fit_refs = fit_refs,
+    nClust = 48,
+    nPROC = 1,
+    sleeptime = 3,
+    save.directory = "simulation-files/fit-files"
   )
 )
 Sys.time()
@@ -526,7 +556,7 @@ fit.files <- l.files %>%
 Sys.time()
 system.time(
   harv <- do_harvest_doFuture(fit.files)
-)
+  )
 Sys.time()
 
 
