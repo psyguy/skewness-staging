@@ -369,82 +369,39 @@ do_fit_doFuture <- function(fit_refs,
 }
 
 
-## @knitr fit_extract
-
-fit_extract <- function(rds.file){
-
-  m <- readRDS(rds.file)
-  est.par <- m[["fit.Dataset"]][["results"]][["parameters"]]
-
-  # make empty dataframe for NAs
-  empty <- data.frame(matrix(ncol = 19, nrow = 0))
-  colnames(empty) <- c("uSeed", "type", "l2.dist", "Model", "N", "phi", "T",
-                       "Rep", "standardization", "est", "posterior_sd", "pval",
-                       "lower_2.5ci", "upper_2.5ci", "sig", "BetweenWithin",
-                       "param.name", "fit.ElapsedTime", "fit.File")
-
-  if(length(est.par) == 0) return(empty)
-  if(is.null(est.par[["unstandardized"]])) return(empty)
-  if(is.null(est.par[["stdyx.standardized"]])) return(empty)
-
-  unstd <- est.par[["unstandardized"]] %>%
-    mutate(param.name = paste(paramHeader,
-                              param,
-                              sep = ".")
-    ) %>%
-    select(-paramHeader:-param) %>%
-    mutate(standardization = "unstd",
-           .before = est)
-  stdyx <- est.par[["stdyx.standardized"]] %>%
-    mutate(param.name = paste(paramHeader,
-                              param,
-                              sep = ".")
-    ) %>%
-    select(-paramHeader:-param) %>%
-    mutate(standardization = "stdyx",
-           .before = est)
-
-  m$fit.Dataset <- NULL
-
-  res <- unstd %>%
-    rbind(stdyx) %>%
-    mutate(fit.ElapsedTime = (difftime(m[["fit.EndTime"]],
-                                       m[["fit.StartTime"]],
-                                       units="mins")
-    ) %>%
-      as.numeric(),
-    fit.File = gsub(".*/", "", m$fit.File)) %>%
-    mutate(uSeed = m$uSeed,
-           type = m$type,
-           l2.dist = m$l2.dist,
-           Model = m$Model,
-           N = m$N,
-           phi = m$phi,
-           T = m$T,
-           Rep = m$Rep,
-           .before = standardization
-    )
-
-  return(res)
-
-}
-
 ## @knitr do_harvest_doFuture
 
 
-do_harvest_doFuture <- function(fit.files){
+do_harvest_doFuture <- function(fit.files,
+                                nClust = 48,
+                                sleeptime = 1){
 
   registerDoFuture()
 
   plan("multisession")
 
-  results <- foreach(f = 1:length(fit.files),
+  results <- foreach(i = 1:length(fit.files),
                      .combine = rbind,
                      .errorhandling = 'remove') %dopar% {
-                       fit_extract(fit.files[f])
+                       if (i <= nClust)
+                         Sys.sleep(sleeptime * i)
+                       fit_extract(fit.files[i])
                      }
   return(results)
 }
+
+## @knitr pipeline_set_directories
+
+dir_files <- "simulation-files"
+dir_references <- paste(dir_files,
+                        "refs",
+                        sep = "/")
+dir_simulation <- paste(dir_files,
+                        "sim-files",
+                        sep = "/")
+dir_analysis <- paste(dir_files,
+                      "fit-files",
+                      sep = "/")
 
 ## @knitr pipeline_make_references
 
@@ -463,7 +420,7 @@ sim_refs_base <- make_sim_refs(
   ),
   simSeed = 0,
   Reps = 1000,
-  save.directory = "simulation-files/sim-files"
+  save.directory = dir_simulation
 ) %>%
   filter(T == 100, Model != "DAR")
 
@@ -480,73 +437,99 @@ for (TT in c(25, 50, 100)) {
   }
 }
 
-
-## Making a backup of the dataframe of simulation reference files
+## Saving a backup of the dataframe of references of simulation files
 
 saveRDS(sim_refs,
-        here::here("simulation-files/refs",
+        here::here(dir_references,
                    "sim-refs.rds"))
 
 ## Making the dataframe of analysis output reference files
 
 fit_refs <- make_fit_refs(sim_refs = sim_refs,
-                          save.directory = "simulation-files/fit-files")
+                          save.directory = dir_analysis)
 
 
-## Saving a backup of the dataframe of analysis output reference files
+## Saving a backup of the dataframe of references of analysis output files
 
 saveRDS(fit_refs,
-        here::here("simulation-files/refs",
+        here::here(dir_references,
                    "fit-refs.rds"))
-
-## Reading the backup of the dataframe of simulation reference files
-
-sim_refs.big <- readRDS(here::here("simulation-files/refs",
-                                   "sim-refs.rds"))
-
-## Running the simulation
-
-Sys.time()
-system.time(
-  t.sim <- do_sim_parallel(sim_refs = sim_refs,
-                           save.directory = "simulation-files/sim-files")
-)
-Sys.time()
 
 
 ## @knitr pipeline_run_study
 
-## Reading the backup of the dataframe of analysis output reference files
 
-fit_refs <- readRDS(here::here("simulation-files/refs",
+# Simulation part ---------------------------------------------------------
+
+## Reading the backup of the dataframe of references of simulation files
+
+sim_refs <- readRDS(here::here(dir_references,
+                               "sim-refs.rds"))
+
+## Making a list of already simulated datasets
+
+sim_refs_done <- list.files(here::here(dir_simulation),
+                            pattern = "sim_uSeed-")
+
+## Finding the datasets that are yet to be simulated
+
+sim_refs_remaining <- sim_refs %>%
+  filter(!(sim.File %in% sim_refs_done))
+
+## Simulating the remaining datasets
+
+Sys.time()
+system.time(
+  t.sim <- do_sim_parallel(sim_refs = sim_refs_remaining,
+                           save.directory = dir_simulation)
+)
+Sys.time()
+
+
+
+# Analysis part -----------------------------------------------------------
+
+## Reading the backup of the dataframe of references of analysis output files
+
+fit_refs <- readRDS(here::here(dir_references,
                                "fit-refs.rds"))
 
+## Making a list of analysis output files
 
-## Running the analysese in parallel
+fit_files_done <- list.files(here::here(dir_simulation),
+                             pattern = "fit_uSeed-")
+
+## Finding the analyses that are yet to be done
+
+fit_refs_remaining <- fit_refs %>%
+  filter(!(fit.File %in% fit_files_done))
+
+## Running the analyses of remaining datasets in parallel
 
 Sys.time()
 system.time(
   t.fit <- do_fit_doFuture(
-    fit_refs = fit_refs,
+    fit_refs = fit_refs_remaining,
     nClust = 48,
     nPROC = 1,
     sleeptime = 3,
-    save.directory = "simulation-files/fit-files"
+    save.directory = dir_analysis
   )
 )
 Sys.time()
 
+
+## @knitr pipeline_harvest_results
+
 ## Harvesting the results in parallel
 
-harvest.dir <- "simulation-files/fit-files"
-# l.files <- list.files(path = here(harvest.dir),
-#                       pattern = glob2rx("*_N-25_T-25*.rds"))
-l.files <- list.files(path = here(harvest.dir),
+dir_harvest <- dir_analysis
+l.files <- list.files(path = here(dir_harvest),
                       pattern = glob2rx("*.rds"))
 
 
 fit.files <- l.files %>%
-  here(harvest.dir, .)
+  here(dir_harvest, .)
 
 
 # registerDoFuture()

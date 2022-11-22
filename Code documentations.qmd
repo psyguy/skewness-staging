@@ -116,7 +116,7 @@ library(knitr)
 
 # Core components {#sec-components}
 
-## The *Simulation* component
+## The *Simulation* component {#sec-simulation-component}
 
 The Simulation component consists of three sets of functions:
 
@@ -124,7 +124,7 @@ i.  Functions that implement the DGMs and generate univariate ($N=1$) time serie
 ii. Wrappers that interface the DGM functions;
 iii. A wrapper to generate datasets (consisting on $N$ time series of length $T$) with a given DGM
 
-### Data-generating models specifications
+### Data-generating models specifications {#sec-dgm-specifications}
 
 First we define functions for each data-generating models (DGMs) that can produce univariate, single-subject ($N=1$) time series of desired length $T$ (default: `T = 100`) with the two canonical parameters and a given random seed (default: `seed = 0`). All model(-implied) parameters are saved in a list (called `pa`).
 
@@ -254,7 +254,7 @@ $$
 
 [^1]: The $\chi^2$AR(1), in a more general form, can have an intercept ($X_{t} = c + \phi X_{t-1} + a_t, \quad a_t \sim \chi^2(\nu)$. Since the intercept was set to zero in the simulation study, we discussed a zero-intercept version of this model ($c=0$) in the paper. See the Supplemental Materials for more details.
 
-### General DGM wrappers
+### General DGM wrappers {#sec-general-dgm-wrappers}
 
 Given that, in each model, two canonical parameters characterize the dynamic and marginal features of the generated time series, and given that we have analytic formulas that link the canonical parameters to the model-implied $\phi$, $\mu$, $\sigma^2$, and $\gamma$, we use a function (`dgm_parameterizer`) to calculate canonical parameters from two given parameters, and make a complete list of parameters (called `pa`). This list also includes non-parameter variables, importantly, the time series length $T$ (saved in `pa$T`) and the random seed used in the `dgm_*` functions (saved in `pa$seed`). A wrapper function (`dgm_generator`) is used as an interface to all `dgm_*` functions, which first makes sure the given parameters are sufficient for data generation, makes a complete parameter list `pa` with the help of `dgm_parameterizer`, and passes `pa` to the respective DGM generating function.
 
@@ -278,7 +278,7 @@ Then, it passes the `pa` list to `dgm_parameterizer` to do the necessary convers
 ```
 :::
 
-### Dataset generation
+### Dataset generation {#sec-dataset-generation}
 
 The machinery described above can be used to generate individual ($N=1$) time series. However, for the simulation study, we need datasets comprising of multiple ($N=25, 50, 100$) individuals. As we discussed in the paper, in our study, all individuals in a dataset of a DGM share the same autoregressive parameter ($\phi_i=0.4$) and the individual differences are only in the individual means ($\mathbb{\mu} = [\mu_1 , \mu_2, \dots, \mu_N]$). Thus, we write a function (`dgm_make.sample`) that can generate, for each DGM, a dataset of $N$ individuals based on an $N$-dimensional vector of individual means, all with the same $\phi_i$. We then need to find the appropriate parameters for the level-2 distributions (Gaussian and $\chi^2$ distributions) for each DGM, such that the we get a considerable proportion of individuals with considerably high skewness while respecting the lower and upper bounds of values supported by each model. Finally, with a wrapper function (`make_datasets`), we facilitate making dataset by automatically generating the means vector suitable for each DGM.
 
@@ -357,7 +357,7 @@ ggsave("Mean_vs_Skewness.png",
 
 #### Automate dataset generation
 
-We then use a wrapper (`make_datasets`) around `dgm_make.sample` that generates datasets for all four DGMs with the appropriate level-2 parameters specified above. Note that here we first generate more than enough (i.e., $2 \times N$) samples of means to make sure we end up with $N$ samples after applying the upper and lower bounds. The datasets are then saved, with some additional variables in separate `.rds` files, using wrapper functions described in @sec-pipeline-wrapper-functions.
+We then use a wrapper (`make_datasets`) around `dgm_make.sample` that generates datasets for all four DGMs with the appropriate level-2 parameters specified above. Note that here we first generate more than enough (i.e., $2 \times N$) samples of means to make sure we end up with $N$ samples after applying the upper and lower bounds. The datasets are then saved, with some additional variables in separate `.rds` files, using wrapper functions described in @sec-pipeline-functions.
 
 ```{r, eval = runComponent_Simulation}
 <<make_datasets>>
@@ -366,7 +366,7 @@ We then use a wrapper (`make_datasets`) around `dgm_make.sample` that generates 
 
 ## The *Analysis* component {#sec-analysis-component}
 
-We analyzed each dataset with AR(1) models with fixed and random residual variance using *M*plus v. 8.1 [@muthen_2017_MplusUserGuide]. To interface *M*plus from R, we used the package `MplusAutomation` [@hallquist_2018_MplusAutomationPackageFacilitating] and wrote a function (`run_MplusAutomation`) that for each iteration of each condition would save the dataset as a `.dat` file, generate the `.inp` input script for the desired analysis type, and run the model for that dataset. *M*plus then saves the output files (`.out` and `.gh5`). After the analysis, `run_MplusAutomation` extracts parameter estimates and returns them in an `R` object, which, with some additional variables, are saved in separate `.rds` files using wrapper functions described in @sec-pipeline-wrapper-functions.
+We analyzed each dataset with AR(1) models with fixed and random residual variance using *M*plus v. 8.1 [@muthen_2017_MplusUserGuide]. To interface *M*plus from R, we used the package `MplusAutomation` [@hallquist_2018_MplusAutomationPackageFacilitating] and wrote a function (`run_MplusAutomation`) that for each iteration of each condition would save the dataset as a `.dat` file, generate the `.inp` input script for the desired analysis type, and run the model for that dataset. *M*plus then saves the output files (`.out` and `.gh5`). After the analysis, `run_MplusAutomation` extracts parameter estimates and returns them in an `R` object, which, with some additional variables, are saved in separate `.rds` files using wrapper functions described in @sec-pipeline-functions.
 
 ```{r, eval = runComponent_Simulation}
 <<run_MplusAutomation>>
@@ -406,11 +406,97 @@ The table below shows the estimated parameters of two replications of with `BITE
 
 ## The *Harvesting* component {#sec-harvesting-component}
 
-The harvesting component was directly implemented in the parallel function `do_harvest_doFuture` described in @sec-pipeline-wrapper-functions.
+Extracting parameter estimates of individual analyses
+
+The function `fit_extract` gets an `.rds` file generated by `do_fit_doFuture` (see @sec-pipeline-functions)---which includes book-keeping information and Mplus output object that was generated by `run_MplusAutomation` (see @sec-analysis-component)---and extracts the `unstandardized` and `stdyx.standardized` *M*plus parameter estimates and stores them, along with the additional book-keeping information, in a dataframe.
+
+```{r, eval = runComponent_Simulation}
+<<fit_extract>>
+```
 
 ## The *Reporting* component {#sec-reporting-component}
 
-The functions include ...
+This component includes a function that clean the harvested dataset (and extract the relevant information) and functions to generate dataset profile plots, results figures, and parameter estimates coverage plots.
+
+Given that the figures contain customized typefaces (from the `CMU Serif` and `Merriweather` font families), we need to make load the fonts:
+
+```{r, eval = runComponent_Simulation}
+<<report_initialization>>
+```
+
+### Cleaning the harvested dataset
+
+Given that the output of `fit_extract` has too much information in it, the function `harvest_cleanup` extracts the relevant parameter estimates, cleans the datasets and makes it *tidy*, and calculates the outcomes of interest (e.g., bias, RMSE, Type-I error rates).
+
+```{r, eval = runComponent_Simulation}
+<<harvest_cleanup>>
+```
+
+### Making plots of datasets
+
+These functions visualize datasets (simulated or empirical) by generating individual histograms and pairplots of summary statistics of datasets, and a function to generate (and combine) these two plots for any given dataset simulated by `do_sim_parallel` in the pipeline (see @sec-pipeline-functions).
+
+::: panel-tabset
+#### Individual histograms
+
+The function `plot_histograms` makes person histograms of the individuals in a dataset (stored as dataframes) and arranges them based on individual means.
+
+```{r, eval = runComponent_Simulation}
+<<plot_histograms>>
+```
+
+#### Pairplots of summary statistics
+
+The function `plot_pairplots` calculates the mean, variance, and skewness of each individual in a dataset (stored as dataframes) and generates pairplots of their joint distribution.
+
+```{r, eval = runComponent_Simulation}
+<<plot_pairplots>>
+```
+
+#### Profile plots of simulated datasets
+
+The function `plot_dataset.profile` gets a simulated object (generated by `do_sim_parallel`) and combines individual histograms and pairplots in a single figure.
+
+```{r, eval = runComponent_Simulation}
+<<plot_dataset.profile>>
+```
+
+We also write the function `save_dataset_profile` to put together two dataset profile plots to get to plots similar to those in Figures S1, S2, S4, and S5 in the Supplemental Materials, and save the final figure as a PDF file.
+
+```{r, eval = runComponent_Simulation}
+<<save_dataset_profile>>
+```
+:::
+
+### Making plots of estimation results
+
+The functions here make the main figures of the paper, which include aspects of model fit (e.g., estimation bias and RMSE, and Type-I error rates, etc.).
+
+::: panel-tabset
+#### Plots for a given level-2 distribution
+
+The function `plot_Model.x.Resid` makes a figure with two columns (for the models with fixed or random residual variance), that show the outcomes of a fit measure (e.g., bias) for all the four DGMs with a given level-2 distribution of means for different $N$s and $T$s.
+
+```{r, eval = runComponent_Simulation}
+<<plot_Model.x.Resid>>
+```
+
+#### Combined plots of results
+
+The function `plot_quadrants` makes a larger figure that includes four *quadrants*, each generated with `plot_Model.x.Resid`., that show the main results of the paper.
+
+```{r, eval = runComponent_Simulation}
+<<plot_quadrants>>
+```
+:::
+
+### Making plots of parameter estimates coverage
+
+The function `plot_caterpillar` makes ...
+
+```{r, eval = runComponent_Simulation}
+<<plot_caterpillar>>
+```
 
 # Pipeline {#sec-pipeline}
 
@@ -453,7 +539,7 @@ We implemented the components described in @sec-components using the following f
 ::: panel-tabset
 ### Simulation in parallel
 
-The function `do_sim_parallel` is a wrapper around `make_datasets` that uses the `clusterApplyLB` function from the package `snow` [@tierney_2021_SnowSimpleNetwork] for parallelization. This wrapper gets the dataframe of simulation file references (`sim_refs`, which is the output of `make_sim_refs`), and for each of its rows, simulates an $N \times T$ dataframe and stores it with other information in the same row---and also additional info about the time the simulating the dataset started and ended---in a list, and saves each list as a separate `.rds` file in the target folder (specified with `sim.Path`). Having the additional data in the saved files allow using them independent from the table of references. Note that to prevent the overload of the hard drive with many parallel write requests (to save the simulated datasets), for the first `nClust` rounds, using the `Sys.sleep` function, the data generation is started after a varying amount of delay.
+The function `do_sim_parallel` is a wrapper around `make_datasets` (see @sec-dataset-generation) and uses the `clusterApplyLB` function from the package `snow` [@tierney_2021_SnowSimpleNetwork] for parallelization. This wrapper gets the dataframe of simulation file references (`sim_refs`, which is the output of `make_sim_refs`), and for each of its rows, simulates an $N \times T$ dataframe and stores it with other information in the same row---and also additional info about the time the simulating the dataset started and ended---in a list, and saves each list as a separate `.rds` file in the target folder (specified with `sim.Path`). Having the additional data in the saved files allow using them independent from the table of references. Note that to prevent the overload of the hard drive with many parallel write requests (to save the simulated datasets), for the first `nClust` rounds, using the `Sys.sleep` function, the data generation is started after a varying amount of delay. Given that every dataset simulation in the first round may take different amount of times, after the first round is complete, the simulations on different cores fall out of sync and there is no more need for adding delays for the next rounds.
 
 ```{r, eval = runComponent_Analysis}
 <<do_sim_parallel>>
@@ -461,23 +547,15 @@ The function `do_sim_parallel` is a wrapper around `make_datasets` that uses the
 
 ### Analysis in parallel
 
-The function `do_fit_doFuture` is a wrapper around `run_MplusAutomation` that uses the package `doFuture` [@bengtsson_2021_UnifyingFrameworkParallel] as a parallelization backend to `plyr::a_ply`. The function gets a dataframe containing references of analyses results (`fit_refs`, which is the output of `make_fit_refs`), and row by row reads the simulated datasets, sub-samples the data if $N < 100$ or $T < 100$ (see the second note under `make_sim_refs` in @sec-bookkeeping) and runs the analysis based on the hyperparameters specified in `fit_refs`. It then saves the outcome of the analysis (the *M*plus model object produced by `MplusAutomation::mplusModeler` and returned by `run_MplusAutomation`), which includes *M*plus outputs and parameter estimates) with additional information (other values in the same row of `fit_refs` as well as timings) in separate `.rds` files in the target folder. Note that, again, to prevent the overload of the hard drive with many parallel read and write requests (to read the simulated datasets and save the *M*plus outputs), for the first `nClust` rounds, using the `Sys.sleep` function, the data analysis is started after a varying amount of delay.
+The function `do_fit_doFuture` is a wrapper around `run_MplusAutomation` (see @sec-analysis-component) and uses the package `doFuture` [@bengtsson_2021_UnifyingFrameworkParallel] as a parallelization backend to `plyr::a_ply`. The function gets a dataframe containing references of analyses results (`fit_refs`, which is the output of `make_fit_refs`), and row by row reads the simulated datasets, sub-samples the data if $N < 100$ or $T < 100$ (see the second note under `make_sim_refs` in @sec-bookkeeping) and runs the analysis based on the hyperparameters specified in `fit_refs`. It then saves the outcome of the analysis (the *M*plus model object produced by `MplusAutomation::mplusModeler` and returned by `run_MplusAutomation`), which includes *M*plus outputs and parameter estimates) with additional information (other values in the same row of `fit_refs` as well as timings) in separate `.rds` files in the target folder. Note that, again, to prevent the overload of the hard drive with many parallel read and write requests (to read the simulated datasets and save the *M*plus outputs), for the first `nClust` rounds, using the `Sys.sleep` function, the data analysis is started after a varying amount of delay. Given that every analysis instance in the first round take different amount of times, after the first round is complete the analyses on cores fall out of sync and there is no more need for adding delays for the next rounds.
 
 ```{r, eval = runComponent_Analysis}
 <<do_fit_doFuture>>
 ```
 
-### Extracting parameter estimates of individual analyses
-
-The function `fit_extract` gets an `.rds` file and extracts the `unstandardized` and `stdyx.standardized` *M*plus parameter estimates and the additional book-keeping information saved by `do_fit_doFuture` and stores them in a dataframe.
-
-```{r, eval = runComponent_Analysis}
-<<fit_extract>>
-```
-
 ### Harvesting in parallel
 
-The function `do_harvest_doFuture` is a wrapper around `fit_extract` that uses the package `doFuture` as a parallelization backend to `foreach`. It gets a list of `.rds` files (that can be taken from or `fit_refs`, or by using `list.files` function in the directory in which the analysis results are saved) and returns a large dataframe including parameter estimates (and additional information) extracted by `fit_extract`.
+The function `do_harvest_doFuture` is a wrapper around `fit_extract` (see @sec-harvesting-component) and uses the package `doFuture` as a parallelization backend to `foreach`. It gets a list of `.rds` files (that can be taken from or `fit_refs`, or by using `list.files` function in the directory in which the analysis results are saved) and returns a large dataframe including parameter estimates (and additional information) extracted by `fit_extract`. Again, like in `do_sim_parallel` and `do_fit_doFuture`, the first `nClust` files are read with varying amount of delay to prevent the overload of the hard drive by multiple read requests.
 
 ```{r, eval = runComponent_Analysis}
 <<do_harvest_doFuture>>
@@ -486,10 +564,21 @@ The function `do_harvest_doFuture` is a wrapper around `fit_extract` that uses t
 
 ## Pipeline code {#sec-pipeline-code}
 
-The following is the code we used to run the whole pipeline, which consists of two chunk: One that creates the book-keeping reference files (using functions described in @sec-bookkeeping), and another that runs the whole simulation study (using functions described in @sec-pipeline-functions).
+The following is the code we used to run the whole pipeline, which consists of three chunk that are responsible of the following:
+
+1.  Creating the book-keeping reference files (using functions described in @sec-bookkeeping).
+2.  Running the whole simulation study (using `do_sim_parallel` and `do_fit_doFuture` described in @sec-pipeline-functions). The codes in this chunk can be interrupted (deliberately or otherwise) and resumed by running it again.
+3.  Harvesting the parameter estimates and storing them in a single dataframe (using `do_harvest_doFuture` of @sec-pipeline-functions). The resulting dataframe is then used to make the plots using in @sec-simulation-results)
+
+But first we need to set the directories in which the results of each chunk is saved:
+
+```{r, eval = runComponent_Analysis}
+#| code-fold: false
+<<pipeline_set_directories>>
+```
 
 ::: panel-tabset
-## Making references
+### Making references
 
 The following code makes `sim_refs` and `fit_refs` tables and make backups of them. In line 17 the rows with `T != 100` and `Model == "DAR"` are omitted, and with the codes in lines 22-31 we add other values of $N$s and $T$s (see the notes under `make_sim_refs` in @sec-bookkeeping).
 
@@ -497,19 +586,22 @@ The following code makes `sim_refs` and `fit_refs` tables and make backups of th
 <<pipeline_make_references>>
 ```
 
-## Running the study
+### Running the study
 
 Here we reads the reference tables `sim_refs` and `fit_refs`. We then make a list of already simulated files (that are located in the `sim.Path` directory) and a list of analysis output files (that are located in the `fit.Path` directory). Then, by comparing `sim_refs` and `fit_refs` with the the lists of simulated and analyzed files, we only simulate/analyze the datasets that have not been yet simulated/analyzed. This allows us resume the simulation study after an interruption to the R session.
 
 ```{r, eval = runComponent_Analysis}
 <<pipeline_run_study>>
-
 ```
-:::
+
+### Harvesting and cleaning the results
+
+dds
 
 ```{r, eval = runComponent_Analysis}
-<<complete_pipeline>>
+<<pipeline_harvest_results>>
 ```
+:::
 
 ## Simulation results {#sec-simulation-results}
 
