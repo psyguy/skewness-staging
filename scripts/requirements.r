@@ -12,6 +12,8 @@ libs_used <-
     "cowplot",
     "glue",
     "patchwork",
+    "RColorBrewer",
+    "ggpubr",
     "ggExtra",
     "primes")
 

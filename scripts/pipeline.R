@@ -392,16 +392,32 @@ do_harvest_doFuture <- function(fit.files,
 
 ## @knitr pipeline_set_directories
 
+## Root directory of simulation study files
 dir_files <- "simulation-files"
+
+## Where reference tables are saved
 dir_references <- paste(dir_files,
                         "refs",
                         sep = "/")
+
+## Where simulated datasets are saved
 dir_simulation <- paste(dir_files,
                         "sim-files",
                         sep = "/")
+
+## Where analysis output files are saved
 dir_analysis <- paste(dir_files,
                       "fit-files",
                       sep = "/")
+
+## Where harvested study results are saved
+dir_harvest <- paste(dir_files,
+                     "harvest-files",
+                     sep = "/")
+
+## where plots are saved
+
+dir_plots <- "figures"
 
 ## @knitr pipeline_make_references
 
@@ -458,7 +474,6 @@ saveRDS(fit_refs,
 
 ## @knitr pipeline_run_study
 
-
 # Simulation part ---------------------------------------------------------
 
 ## Reading the backup of the dataframe of references of simulation files
@@ -484,7 +499,6 @@ system.time(
                            save.directory = dir_simulation)
 )
 Sys.time()
-
 
 
 # Analysis part -----------------------------------------------------------
@@ -523,25 +537,61 @@ Sys.time()
 
 ## Harvesting the results in parallel
 
-dir_harvest <- dir_analysis
-l.files <- list.files(path = here(dir_harvest),
+l.files <- list.files(path = here(dir_analysis),
                       pattern = glob2rx("*.rds"))
 
 
 fit.files <- l.files %>%
-  here(dir_harvest, .)
+  paste(here::here(dir_analysis),
+        .,
+        sep = "/")
 
 
-# registerDoFuture()
-#
-# plan("multisession")
+list.files(here::here(dir_harvest),
+           pattern = "harvest-raw_") %>%
+  sort(decreasing = TRUE) %>%
+  paste(here::here(dir_harvest),
+        .,
+        sep = "/") %>%
+  readRDS()
 
 Sys.time()
 system.time(
-  harv <- do_harvest_doFuture(fit.files)
+  harvest_raw <- do_harvest_doFuture(fit.files)
   )
 Sys.time()
 
 
-saveRDS(harv,
-        "fit-harvest_64k.rds")
+saveRDS(harvest_raw,
+        here::here(dir_harvest,
+                   paste0(
+                     "harvest-raw_",
+                     format(Sys.time(),
+                            "%Y-%m-%d_%H-%M"),
+                     ".rds"
+                   )))
+
+
+d_abridged <- harvest_raw %>%
+  harvest_cleanup(return.abridged = TRUE)
+
+saveRDS(d_abridged ,
+        here::here(dir_harvest,
+                   paste0(
+                     "harvest-abridged_",
+                     format(Sys.time(),
+                            "%Y-%m-%d_%H-%M"),
+                     ".rds"
+                   )))
+
+
+d_important <- harvest_raw %>% harvest_cleanup()
+
+saveRDS(d_important ,
+        here::here(dir_harvest,
+                   paste0(
+                     "harvest-important_",
+                     format(Sys.time(),
+                            "%Y-%m-%d_%H-%M"),
+                     ".rds"
+                   )))

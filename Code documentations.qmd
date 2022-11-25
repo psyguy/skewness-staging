@@ -16,7 +16,7 @@ format:
     code-summary: "Click to expand the code"
     anchor-sections: true
     reference-location: document
-    citation-location: margin
+    citation-location: document
   # theme:
   #   light: litera
   #   dark: darkly
@@ -54,7 +54,7 @@ This document contains the reproducible code for the manuscript Skewness and sta
 
 ...
 
-In this study, we simulated multilevel data from three data generating mechanisms (DGMs), namely, the AR(1, $\chi^2$AR(1), BinAR(1), and PoDAR(1) models with different parameter sets.\
+In this study, we simulated multilevel data from three data generating mechanisms (DGMs), namely, the AR(1), $\chi^2$AR(1), BinAR(1), and PoDAR(1) models with different parameter sets.\
 For details, see the paper.
 
 The simulation was conducted using the following modular pipeline design, inspired by Bien's R package `simulator` [-@bien_2016_SimulatorEngineStreamline], consisting of the following **components**:
@@ -424,15 +424,15 @@ Given that the figures contain customized typefaces (from the `CMU Serif` and `M
 <<report_initialization>>
 ```
 
-### Cleaning the harvested dataset
+### Cleaning the harvested dataset {#sec-report-clean-harvest}
 
-Given that the output of `fit_extract` has too much information in it, the function `harvest_cleanup` extracts the relevant parameter estimates, cleans the datasets and makes it *tidy*, and calculates the outcomes of interest (e.g., bias, RMSE, Type-I error rates).
+Given that the output of `fit_extract` has too much information in it, the function `harvest_cleanup` extracts the relevant parameter estimates---the point estimates and the upper and lower 2.5 crediblity intervals of level-2 covariance (`unstd X.WITH.PHI)`, level-2 correlation (`stdyx X.WITH.PHI`), and fixed-effect autoregressive parameter at level 2 (`unstd Means.PHI`)---cleans the datasets and makes it *tidy*, and calculates the outcomes of interest, namely, the (absolute) average estimates, mean absolute and squared error, root mean squared error, estimation bias and variance, number and percentage of of non-converged datasets, and the percentages of significantly positive or negative or non-significant parameter estimates.
 
 ```{r, eval = runComponent_Simulation}
 <<harvest_cleanup>>
 ```
 
-### Making plots of datasets
+### Making distribution plots of simulated datasets {#sec-make-distribution-plots}
 
 These functions visualize datasets (simulated or empirical) by generating individual histograms and pairplots of summary statistics of datasets, and a function to generate (and combine) these two plots for any given dataset simulated by `do_sim_parallel` in the pipeline (see @sec-pipeline-functions).
 
@@ -468,7 +468,7 @@ We also write the function `save_dataset_profile` to put together two dataset pr
 ```
 :::
 
-### Making plots of estimation results
+### Making plots of estimation results {#sec-report-estimation-plots}
 
 The functions here make the main figures of the paper, which include aspects of model fit (e.g., estimation bias and RMSE, and Type-I error rates, etc.).
 
@@ -490,12 +490,20 @@ The function `plot_quadrants` makes a larger figure that includes four *quadrant
 ```
 :::
 
-### Making plots of parameter estimates coverage
+### Making plots of parameter estimates coverage {#sec-report-caterpillar-plots}
 
-The function `plot_caterpillar` makes ...
+The function `plot_caterpillar` , for a given condition and a given parameter, makes plots of 95% confidence intervals (as vertical bars) of all converged replications within that condition. The lines are ordered based on the point estimates and are colored based on whether they crossed zero (the correct estimate) or whether the whole 95% interval was bellow or above zero (significantly negative or positive estimates).
 
 ```{r, eval = runComponent_Simulation}
 <<plot_caterpillar>>
+```
+
+### Making plots for DGM time series
+
+A function was also made to make profiles of individual time series, that include the time series itself, its marginal distribution, and its sample ACF.
+
+```{r, eval = runComponent_Simulation}
+<<plot_dgm.profile>>
 ```
 
 # Pipeline {#sec-pipeline}
@@ -596,19 +604,101 @@ Here we reads the reference tables `sim_refs` and `fit_refs`. We then make a lis
 
 ### Harvesting and cleaning the results
 
-dds
+Finally, the analyzed datasets are read using `do_harvest_doFuture` in parallel and stored in an `.rds` file suffixed with date and time (to prevent over-writing the previously saved harvest files). Furthermore, using the function `harvest_cleanup` (of @sec-report-clean-harvest), a clean, abridged version of the raw harvest dataframe (only containing the important outcome measures of interest) is made and saved in another `.rds` file (again suffixed with date and time).
 
 ```{r, eval = runComponent_Analysis}
 <<pipeline_harvest_results>>
 ```
 :::
 
-## Simulation results {#sec-simulation-results}
+# Simulation results {#sec-simulation-results}
 
-The simulation results were
+We read the abridged harvested data file (`harvest-important_***.rds`) and make the outcome plots using `plot_Model.x.Resid` and `plot_quadrants` functions (of @sec-report-estimation-plots ) and the MCMC estimates coverage plots using the function `plot_caterpillar` (of @sec-report-caterpillar-plots). To ensure small file size and good resolutions, all plots are saved in separate PDF files (which can easily be included in a `r ifelse(knitr::is_html_output(), r"($\mathrm{\LaTeX{}}$)", r"(\LaTeX{})")` script) in a specific directory.
 
-# Additional analyses and figures {#sec-additional-analyses-and-figures}
+We first read the abridged harvest dataframe and set the plot output folder:
 
-## Profiles of simulated datasets {#sec-profiles-of-simulated-datasets}
+```{r, eval = runComponent_Simulation}
+<<results_read_harvest>>
+```
+
+## Plots main results
+
+::: panel-tabset
+### Plots of a single outcome measure
+
+The left and right panels (including results for Gaussian and $\chi^2$ distributed means) are made for each outcome measure of interest using `plot_Model.x.Resid`, combined using the package `patchwork`, and saved as PDF files.
+
+```{r, eval = runComponent_Analysis}
+<<results_plots_measures_single>>
+```
+
+### Plots of two outcome measures combined
+
+The plots containing pairs of outcome measures (respectively including results for Gaussian and $\chi^2$ distributed means) are made for each outcome measure of interest, combined using the package `patchwork`, and saved as PDF files.
+
+```{r, eval = runComponent_Analysis}
+<<results_plots_measures_pairs>>
+```
+:::
+
+## Plots of MCMC parameter estimates coverage
+
+It should be noted that `plot_caterpillar` requires the complete (i.e., raw) dataset of harvested results.
+
+```{r, eval = runComponent_Analysis}
+<<results_plots_caterpillar>>
+```
+
+# Additional figures and analyses {#sec-additional-analyses-and-figures}
+
+## DGM time series plots {#sec-additional-DGM-time-series-plots}
+
+We make plots including time series plots, marginal distributions, and sample ACFs for three time series generated by each DGMs.
+
+::: panel-tabset
+### Combining DGM outputs in one dataframe
+
+```{r, eval = runComponent_Simulation}
+<<make_dgm_df>>
+```
+
+### Making the plots
+
+```{r, eval = runComponent_Simulation}
+<<additional_plots_dgms>>
+```
+
+### Saving the plots
+
+```{r, eval = runComponent_Simulation}
+<<additional_plots_dgms_save>>
+```
+:::
+
+## Profiles of the simulated datasets {#sec-profiles-of-simulated-datasets}
+
+We read the first replication of simulated datasets with $N = 100, T = 100$ and plot using the function `plot_dataset.profile` (from @sec-make-distribution-plots).
+
+```{r, eval = runComponent_Analysis}
+<<additional_plots_dataset_profiles>>
+```
 
 ## COGITO data analysis {#sec-cogito-data-analysis}
+
+In the paper, we reported an analysis of distress time series in of the COGITO dataset @schmiedek_2010_HundredDaysCognitive. Because we are not allowed to make the dataset public, here we provide the *M*plus input script and the analysis output.
+
+::: panel-tabset
+### *M*plus input
+
+```{inp}
+#| label: Mplus-input_cogito-distress
+#| file: scripts/Mplus_cogito-distress.inp
+```
+
+### *M*plus output
+
+```{out}
+#| label: Mplus-output_cogito
+#| file: scripts/Mplus_cogito-distress.out
+```
+:::

@@ -34,51 +34,10 @@ palette_podar <- brewer.pal(name = "BuPu", n = 9)[c(5, 7, 9)]
 
 ## @knitr harvest_cleanup
 
-harvest_cleanup <- function(harv) {
+harvest_cleanup <- function(harv,
+                            return.abridged = FALSE) {
 
-  d <- harv %>%
-    filter(standardization == "unstd",
-           param.name == "X.WITH.PHI") %>%
-    select(type,
-           N,
-           T,
-           l2.dist,
-           Model,
-           est,
-           sig,
-           lower_2.5ci,
-           upper_2.5ci) %>%
-    group_by(N, T, type, Model, l2.dist) %>%
-    mutate(sign.X.sig = as.factor(sign(est) * sig)) %>%
-    mutate(
-      mean.est = mean(est),
-      n.datasets = n(),
-      nonconverged.percent = round(100 * (1000 - n()) / 1000, 2)
-    ) %>%
-    group_by(sign.X.sig,
-             .add = TRUE) %>%
-    mutate(error.percents = round(100 * n() / n.datasets, 2)) %>%
-    arrange(N, T,
-            .by_group = TRUE) %>%
-    mutate(ordering = est) %>%
-    arrange(ordering) %>%
-    ungroup() %>%
-    group_by(type,
-             N,
-             T,
-             l2.dist,
-             Model) %>%
-    mutate(ord = order(ordering) - n() / 2) %>%
-    mutate(NN = as.factor(paste("N =", N)),
-           TT = as.factor(paste("T =", T)))
-
-
-  levels(d$sign.X.sig) <- c("Significant negative estimates",
-                            "Non-significant estimates",
-                            "Significant positive estimates")
-
-
-  d.abridged <- harv %>%
+  d_abridged <- harv %>%
     na.omit() %>%
     mutate(std_parname = paste(standardization, param.name)) %>%
     filter(std_parname %in% c("stdyx X.WITH.PHI",
@@ -101,54 +60,89 @@ harvest_cleanup <- function(harv) {
         parameter == "Fixed.Phi" ~ 0.4
       ),
       .after = sig
-    )
+    ) %>%
+    mutate(l2.X.Model = as.factor(paste(l2.dist, Model)),
+           .before = N) %>%
+    mutate(
+      sign.X.sig = case_when(
+        upper_2.5ci < true.value ~ "Negative",
+        lower_2.5ci > true.value ~ "Positive",
+        TRUE ~ "Zero"
+      )
+    ) %>%
+    group_by(type,
+             l2.X.Model,
+             N,
+             T,
+             parameter) %>%
+    mutate(
+      mean.est = mean(est),
+      mean.abs.est = mean(abs(est)),
+      MAE = mean(abs(est - true.value)),
+      MSE = mean((est - true.value) ^ 2),
+      RMSE = sqrt(mean((est - true.value) ^ 2)),
+      Bias = mean(est) - true.value,
+      Variance = var(est),
+      n.converged.datasets = n(),
+      nonconverged.percent = round(100 * (1000 - n()) / 1000, 2)
+    ) %>%
+    arrange(est) %>%
+    ungroup() %>%
+    group_by(type,
+             N,
+             T,
+             l2.dist,
+             Model) %>%
+    mutate(ord = order(est) - n()/2) %>%
+    group_by(sign.X.sig,
+             .add = TRUE) %>%
+    mutate(percent = round(100 * n() / n.converged.datasets, 1),
+           .after = sign.X.sig) %>%
+    relocate(sign.X.sig:nonconverged.percent,
+             .after = parameter) %>%
+    relocate(est,
+             .after = percent)
 
+  levels(d_abridged$sign.X.sig) <- c(
+    "Significant negative estimates",
+    "Non-significant estimates",
+    "Significant positive estimates"
+  )
 
-  d_summary <- d.abridged %>%
+  if(return.abridged == TRUE) return(d_abridged)
+
+  d_summary <- d_abridged %>%
     select(type:nonconverged.percent) %>%
     select(-Rep, -est) %>%
     distinct() %>%
     mutate(`Type-1 error` = percent,
-           .after = Variance)
-
-
-  dd <- d_summary[with(d_summary,
-                       order(type,
-                             l2.X.Model,
-                             parameter,
-                             N,
-                             T)), ] %>%
-    ungroup() %>%
-    complete(Resid, `Model name`, N, T,
-             fill = list(value = 0))
-
-
-  d_important <- dd %>%
-    mutate(
-      `Model name` = factor(
-        paste0(Model, "(1)"),
-        levels = c("NAR(1)",
-                   "Chi2AR(1)",
-                   "BinAR(1)",
-                   "PoDAR(1)")
-      ),
-      `Means distribution` = paste0(l2.dist, "-distributed means"),
-      Resid = case_when(
-        type == "resid.fixed" ~ "`Fixed Residual Variance`",
-        type == "resid.random" ~ "`Random Residual Variance`"
-      ),
-      .after = l2.X.Model
+           .after = Variance
     )
 
-  levels(d_important$`Model name`) <- c(
-    `NAR(1)` = "AR(1)",
-    `Chi2AR(1)` = TeX("$\\chi^2$AR(1)"),
-    `BinAR(1)` = "BinAR(1)",
-    `PoDAR(1)` = "PoDAR(1)"
-  )
 
+  d_important <- d_summary[with(d_summary,
+                                order(type,
+                                      l2.X.Model,
+                                      parameter,
+                                      N,
+                                      T)), ] %>%
+    mutate(`Model name` = factor(paste0(Model, "(1)"),
+                                 levels = c("NAR(1)",
+                                            "Chi2AR(1)",
+                                            "BinAR(1)",
+                                            "PoDAR(1)")
+    ),
+    `Means distribution` = paste0(l2.dist, "-distributed means"),
+    Resid = case_when(type == "resid.fixed" ~ "`Fixed Residual Variance`",
+                      type == "resid.random" ~ "`Random Residual Variance`"),
+    .after = l2.X.Model)
 
+  levels(d_important$`Model name`) <- c(`NAR(1)` = "AR(1)",
+                                        `Chi2AR(1)` = TeX("$\\chi^2$AR(1)"),
+                                        `BinAR(1)` = "BinAR(1)",
+                                        `PoDAR(1)` = "PoDAR(1)")
 
+  return(d_important)
 
 }
 
@@ -548,47 +542,40 @@ plot_dataset.profile <- function(sim.object,
 
 ## @knitr save_dataset_profile
 
-save_dataset_profile <-
-  function(upper,
-           lower,
-           file.name = "meh",
-           title = NULL) {
-    p_profiles <-
-      (
-        plot_dataset.profile(upper, title_l2.dist = TRUE) /
-          plot_spacer() /
-          plot_dataset.profile(lower, title_l2.dist = TRUE)
-      ) +
-      plot_layout(heights = c(1, 0.02, 1)) +
-      plot_annotation(# title = ifelse(is.null(title),
-        #                NULL,
-        #                TeX(paste(title, "model $\\phantom{\\chi^2}$"))
-        #                ),
-        theme = theme(
-          plot.title = element_text(
-            size = rel(4),
-            hjust = 0.5,
-            family = "CMU Serif"
-          ),
-          plot.subtitle = element_blank()
-        ))
 
-    ggsave(
-      paste0(file.name,
-             ".pdf"),
-      p_profiles,
-      width = 2 * 15,
-      height = 2.02 * 1.1 * 15,
-      units = "cm"
-    )
 
-  }
+save_dataset_profile <- function(upper,
+                                 lower,
+                                 file.name = "Dataset profile",
+                                 path = "figures",
+                                 title = NULL) {
+  p_profiles <-
+    (
+      plot_dataset.profile(upper, title_l2.dist = TRUE) /
+        plot_spacer() /
+        plot_dataset.profile(lower, title_l2.dist = TRUE)
+    ) +
+    plot_layout(heights = c(1, 0.02, 1)) +
+    plot_annotation(theme = theme(
+      plot.title = element_text(
+        size = rel(4),
+        hjust = 0.5,
+        family = "CMU Serif"
+      ),
+      plot.subtitle = element_blank()
+    ))
 
-levels(d$sign.X.sig) <- c(
-  "Significant negative estimates",
-  "Non-significant estimates",
-  "Significant positive estimates"
-)
+  ggsave(
+    paste0(file.name,
+           ".pdf"),
+    p_profiles,
+    path = path,
+    width = 2 * 15,
+    height = 2.02 * 1.1 * 15,
+    units = "cm"
+  )
+
+}
 
 
 ## @knitr plot_Model.x.Resid
@@ -655,7 +642,6 @@ plot_Model.x.Resid <- function(d_important,
     TeX("$\\chi^2$-distributed means")
   )
 
-
   output.plot <- ddd %>%
     ggplot() +
     aes(
@@ -692,13 +678,11 @@ plot_Model.x.Resid <- function(d_important,
       panel.spacing = unit(0.7, "lines"),
       legend.position = "bottom",
       legend.key = element_rect(colour = NA, fill = NA),
-      legend.key.width = unit(10, "mm"),
       text = element_text(size = 10,
                           family = "CMU Serif")
     )
 
-  if (which.measure == "Type-1 error" |
-      which.measure == "Relative efficiency") {
+  if (which.measure == "Type-1 error") {
     output.plot <- ddd %>%
       ggplot() +
       aes(
@@ -777,8 +761,6 @@ plot_Model.x.Resid <- function(d_important,
 
 }
 
-
-
 ## @knitr plot_quadrants
 
 plot_quadrants <- function(d_important,
@@ -853,13 +835,14 @@ plot_quadrants <- function(d_important,
 
 ## @knitr plot_caterpillar
 
-plot_caterpillar <- function(d,
+plot_caterpillar <- function(d_abridged,
                              l2.dist_ = "Chi2",
                              Model_ = "PoDAR",
                              analysis.type = "resid.fixed",
-                             parameter = "covariance",
+                             parameter_ = "covariance",
                              legend.key.width = 5,
                              legend.line.width = 10) {
+
   title <- ifelse(
     analysis.type == "resid.fixed",
     "fixed residual variance",
@@ -867,14 +850,57 @@ plot_caterpillar <- function(d,
   ) %>%
     paste("Modeled with", .)
 
-  dd <- d %>%
+  dd <- d_abridged %>%
     filter(l2.dist == l2.dist_,
-           Model == Model_)
+           Model == Model_) %>%
+    filter(tolower(parameter) == tolower(parameter_)) %>%
+    filter(type == analysis.type) %>%
+  select(type,
+         N,
+         T,
+         l2.dist,
+         Model,
+         est,
+         sig,
+         lower_2.5ci,
+         upper_2.5ci
+  ) %>%
+    group_by(N, T, type, Model, l2.dist) %>%
+    mutate(sign.X.sig = as.factor(sign(est)*sig)) %>%
+    # mutate(sign.X.sig = factor(sign.X.sig, levels = c("Negative Type-I error",
+    #                                                   "Non-significant estimates",
+    #                                                   "Positive Type-I error"))) %>%
+    mutate(mean.est = mean(est),
+           n.datasets = n(),
+           nonconverged.percent = round(100*(1000-n())/1000,2)) %>%
+    group_by(sign.X.sig,
+             .add = TRUE) %>%
+    mutate(error.percents = round(100*n()/n.datasets,2)) %>%
+    arrange(N, T,
+            .by_group = TRUE) %>%
+    mutate(ordering = est # + 100*sign(est)*sig
+    ) %>%
+    arrange(ordering) %>%
+    ungroup() %>%
+    group_by(type,
+             N,
+             T,
+             l2.dist,
+             Model) %>%
+    mutate(ord = order(ordering) - n()/2) %>%
+    mutate(NN = as.factor(paste("N =", N)),
+           TT = as.factor(paste("T =", T)))
+
+
+  levels(dd$sign.X.sig) <- c("Significant negative estimates",
+                            "Non-significant estimates",
+                            "Significant positive estimates")
+
   y.range <- c(min(dd$lower_2.5ci), max(dd$upper_2.5ci))
 
   dd %>%
-    filter(type == analysis.type) %>%
-    # sample_n(100) %>%
+    mutate(NN = as.factor(paste("N =", N)),
+           TT = as.factor(paste("T =", T))) %>%
     ggplot() +
     aes(x = ord,
         color = sign.X.sig) +
@@ -937,3 +963,196 @@ plot_caterpillar <- function(d,
     ylab(paste("Estimated", parameter))
 
 }
+
+## @knitr plot_dgm.profile
+
+plot_dgm.profile <- function(d,
+                             p.colors = colors.nar.khaki,
+                             Model.name = "NAR(1)",
+                             burnin_proportion = 0.9){
+
+  binwidth_ <- 0.5
+
+  ## To make sure the plot title has the same height as Chi2AR model
+  Model.name <- paste("$\\phantom{\\chi^2}$",
+                      Model.name,
+                      "$\\phantom{\\chi^2}$")
+
+  d$obj.id <- d$obj.id %>% factor(unique(d$obj.id))
+  d <- d %>%
+    filter(t > max(d$t)*burnin_proportion) %>%
+    mutate(t = t - burnin_proportion*max(t))
+
+  acf.lag.max <- 10
+
+  d_acf <- d %>%
+    group_by(obj.id) %>%
+    summarize(lag = stats::acf(value,
+                               lag.max = acf.lag.max,
+                               plot = FALSE)$lag %>% as.numeric(),
+              acf = stats::acf(value,
+                               lag.max = acf.lag.max,
+                               plot = FALSE)$acf %>% as.numeric()
+    )
+  empirical.rho <- d_acf %>%
+    filter(lag == 1)
+  empirical.rho <- empirical.rho[rep(1:nrow(empirical.rho),
+                                     times = acf.lag.max*20 + 1), ]
+
+  e.l <- rep(seq(0, acf.lag.max, 0.05),
+             each = 3)
+  empirical.rho$lag <- e.l
+  empirical.rho$acf <- empirical.rho$acf^empirical.rho$lag
+
+
+  # time series plot
+  p_ts <- d %>%
+    ggplot(aes(x = t,
+               y = value,
+               group = obj.id)) +
+    geom_line(aes(color = obj.id),
+              alpha = 1,
+              size = 1) +
+    geom_hline(aes(yintercept = Mean),
+               size = 0.75,
+               linetype = "dashed",
+               color = "honeydew3") +
+    ggtitle("Time series") +
+    xlab("t") +
+    theme(
+      axis.title.y = element_blank(),
+      legend.position = "none", # c(0.1,0.95),
+      legend.background = element_rect(colour = NA, fill = NA),
+      axis.title.x = element_text(size = 17,
+                                  family = "Merriweather Regular"),
+      axis.text = element_text(size = 20,
+                               family = "Merriweather Regular"),
+      legend.text.align	= 0,
+      legend.title = element_blank(),
+      legend.key = element_rect(colour = NA,
+                                fill = NA),
+      panel.background = element_blank()) +
+    scale_colour_manual(values = p.colors,
+                        labels = unname(TeX(unique(as.character(d$obj.id))))
+    )
+
+  p_hist <- d %>%
+    ggplot(aes(x = value,
+               group = obj.id,
+               fill = obj.id)) +
+    geom_histogram(aes(y=..ndensity..),
+                   center = 0,
+                   binwidth = binwidth_) +
+    facet_wrap(~obj.id,
+               nrow = 3) +
+    geom_hline(yintercept = 0,
+               size = 0.5) +
+    geom_segment(aes(x = Mean,
+                     xend = Mean,
+                     y = 0,
+                     yend = 1),
+                 size = 0.75,
+                 linetype = "dashed",
+                 color = "honeydew3") +
+  theme_tufte() +
+    ggtitle("Marginal distribution") +
+    xlab("X") +
+    scale_y_continuous(limits = c(min(d_acf$acf), 1)) +
+    theme(strip.background = element_blank(),
+          strip.text = element_blank(),
+          axis.title.x = element_text(size = 17,
+                                      family = "Merriweather Regular"),
+          axis.ticks.y = element_blank(),
+          axis.text.y = element_blank(),
+          axis.title.y = element_blank(),
+          legend.position = "none",
+          legend.text.align	= 0,
+          legend.title = element_blank(),
+          legend.key = element_rect(colour = NA,
+                                    fill = NA),
+          panel.background = element_blank()) +
+    scale_fill_manual(values = p.colors,
+                      unname(TeX(unique(as.character(d$obj.id))))
+    )
+
+
+  ### ACF plots
+
+  d_acf <- d %>%
+    group_by(obj.id) %>%
+    summarize(lag = stats::acf(value,
+                               lag.max = acf.lag.max,
+                               plot = FALSE)$lag %>% as.numeric(),
+              acf = stats::acf(value,
+                               lag.max = acf.lag.max,
+                               plot = FALSE)$acf %>% as.numeric(),
+              empirical.rho = stats::acf(value,
+                                         lag.max = acf.lag.max,
+                                         plot = FALSE)$acf[2] %>% as.numeric())
+
+
+
+
+  p_acf <- d_acf %>%
+    ggplot(aes(x = lag,
+               y = acf,
+               color = obj.id)) +
+    geom_segment(aes(x = lag,
+                     xend = lag,
+                     y = 0,
+                     yend = acf
+    ),
+    size = 1.5,
+    lineend = "butt") +
+    # exponential fit
+    geom_line(data = empirical.rho,
+              aes(x = lag,
+                  y = acf),
+              linetype = 2,
+              color = "honeydew3",
+              size = 0.75) +
+    facet_wrap(~obj.id,
+               nrow = 3) +
+    geom_hline(aes(yintercept = 0),
+               size = 0.5) +
+    ggtitle("Sample ACF") +
+    theme_tufte() +
+    theme(strip.background = element_blank(),
+          strip.text = element_blank(),
+          axis.title.y = element_blank(),
+          axis.title.x = element_text(size = 17,
+                                      family = "Merriweather Regular"),
+          legend.position = "none",
+          legend.text.align	= 0,
+          legend.title = element_blank(),
+          legend.key = element_rect(colour = NA,
+                                    fill = NA)
+    ) +
+    scale_x_continuous(breaks = seq(0, acf.lag.max, 2)) +
+    xlab("Lag") +
+    ylab("Autocorrelation function") +
+    theme(panel.background = element_blank()) +
+    scale_color_manual(values = p.colors,
+                       unname(TeX(unique(as.character(d$obj.id))))
+    )
+
+  p_profile.main <- p_ts + plot_spacer() + p_hist + plot_spacer() + p_acf +
+    plot_layout(widths = c(4, 0.05, 1.5, 0.05, 2)) &
+    theme(
+      # legend.key.width = unit(2, "line"),
+      # legend.text=element_text(size=10),
+      # legend.position = "none",
+      axis.text = element_text(size = 17,
+                               family = "Merriweather Regular"),
+      plot.title = element_text(size = 15+5,
+                                family = "Merriweather Regular")
+    )
+
+  p_out <- p_profile.main
+
+  return(p_out)
+
+}
+
+
+

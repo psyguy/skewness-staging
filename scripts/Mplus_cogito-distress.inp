@@ -1,0 +1,37 @@
+TITLE:
+Multilevel AR(1) model of COGITO distress
+
+DATA:
+FILE = "cogito-na1-distress.dat";
+ 
+VARIABLE:
+
+NAMES = subject t x; 
+MISSING=.;
+CLUSTER = subject;
+LAGGED = x(1);
+TINTERVAL = t(1);
+
+ANALYSIS:
+
+TYPE = TWOLEVEL RANDOM;
+ESTIMATOR = BAYES;
+PROCESSORS = 2;
+CHAINS = 2;
+THIN = 5;
+BITERATIONS = 5000(2000);
+
+MODEL:
+%WITHIN%
+phi | x ON x&1;
+logv | x;
+
+%BETWEEN%
+x phi logv WITH x phi logv;
+
+OUTPUT:
+TECH1 TECH2 TECH3 TECH8 FSCOMPARISON STANDARDIZED STDYX STDY;
+
+PLOT:
+TYPE = PLOT3;
+FACTORS = ALL (500);
