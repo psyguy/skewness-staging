@@ -11,19 +11,25 @@ format:
     code-line-numbers: true
     toc: true
     toc-location: left
+    number-sections: true
+    number-offset: -1
+    link-external-newwindow: true
     toc-depth: 5
-    self-contained: true
+    self-contained: false
     self-contained-math: false
     code-summary: "Click to expand the code"
     anchor-sections: true
     reference-location: document
     citation-location: document
-  # theme:
-  #   light: litera
-  #   dark: darkly
+    theme:
+      light: litera
+      dark: darkly
+    # comments:
+    #   hypothesis: true
   pdf:
     number-sections: true
     number-depth: 8
+    #number-offset: -1
     toc: true
     output-file: Code documentation
     toc-depth: 8
@@ -51,14 +57,11 @@ bibliography: references.bib
 
 # Introduction {#sec-introduction}
 
-This document contains the reproducible code for the manuscript Skewness and staging: Does the floor effect induce bias in multilevel AR(1) models? by M. M. Haqiqatkhah, O. Ryan, and E. L. Hamaker. please cite as:
+This document contains the reproducible code for the manuscript *Skewness and staging: Does the floor effect induce bias in multilevel AR(1) models?* by @haqiqatkhah_2022_SkewnessStagingDoes. Please cite this document with the following info:
 
-...
+> Haqiqatkhah, M. M., Ryan, O., & Hamaker, E. L. (2022). *Skewness and staging: Does the floor effect induce bias in multilevel AR(1) models?* PsyArXiv. <https://doi.org/10.31234/osf.io/myuvr>
 
-In this study, we simulated multilevel data from three data generating mechanisms (DGMs), namely, the AR(1), $\chi^2$AR(1), BinAR(1), and PoDAR(1) models with different parameter sets.\
-For details, see the paper.
-
-The simulation was conducted using the following modular pipeline design, inspired by Bien's R package `simulator` [-@bien_2016_SimulatorEngineStreamline], consisting of the following **components**:
+In this study, we simulated multilevel data from three data generating mechanisms (DGMs), namely, the AR(1), $\chi^2$AR(1), BinAR(1), and PoDAR(1) models with different parameter sets. The simulation was conducted using the following modular pipeline design, inspired by Bien's R package `simulator` [-@bien_2016_SimulatorEngineStreamline], consisting of the following **components**:
 
 A.  *Simulation*: generating the datasets
 B.  *Analysis*: modeling the data
@@ -73,22 +76,22 @@ And the components were placed in a **pipeline**, that managed:
 4.  Performing Analyses in batch
 5.  Collecting the data in batch
 
-This document is structured as follows. In @sec-components, we explain the four components and the functions used therein. Then, in @sec-pipeline we explain the wrapper functions used in the pipeline, and show how the pipeline was---and can be---executed. Then, in @sec-simulation-results, we discuss how the harvested data was used to make the figures used in the paper (and others that were not included). Finally, in @sec-additional-analyses-and-figures we discuss how supplementary plots were made and how the empirical data analysis (on COGITO data) was done.
+This document is structured as follows. In @sec-components, we explain the four components and the functions used therein. Then, in @sec-pipeline we explain the wrapper functions used in the pipeline, and show how the pipeline was---and can be---executed. Then, in @sec-simulation-results, we discuss how the harvested data was used to make the figures used in the paper (and others that were not included). Finally, in @sec-additional-analyses-and-figures we discuss how supplementary plots were made and how the empirical data analysis [on COGITO data; @schmiedek_2010_HundredDaysCognitive] was done. Note that although the codes provided here are cleaned as much as possible, they are not necessarily succinctly written; some functions were written to accommodate the most general functionalities which turned out to be not necessary for the simulation study.
 
-<!--# In what follows we describe the steps and provide the codes used in this study. In the other tab of this document, we provide the code to generate additional plots shown in the paper. Note that although the codes provided here are cleaned as much as possible, they are not necessarily succinctly written; some functions were written to accommodate the most general functionalities which turned out to be not necessary for the simulation study. -->
+The [GitHub {{< fa brands github >}} repository of this study](https://github.com/psyguy/skewness-staging) contains all of the code necessary to run the study (in the `scripts` folder [{{< fa globe >}}](https://github.com/psyguy/skewness-staging/tree/main/scripts)). Furthermore, because running the whole study would take a huge amount of time (it took us more than 88 days on a 24-core server and produced 2.69 TB of data), the the raw and summarized datasets of the estimated parameters are provided in `simulation-files/harvests` [{{< fa globe >}}](https://github.com/psyguy/skewness-staging/tree/main/simulation-files/harvest-files). To give an impression of the simulated datasets and the analysis output files, the `.rds` files of the first replication of the study are also provided in `simulation-files` folder [{{< fa globe >}}](https://github.com/psyguy/skewness-staging/tree/main/simulation-files), and the *M*plus files of the first replication of the $N=100, T=100$ condition is provided in the `Mplus-files` folder [{{< fa globe >}}](https://github.com/psyguy/skewness-staging/tree/main/Mplus-files). Finally, all the figures that can be generated based on the study results are provided in the `figures` folder [{{< fa globe >}}](https://github.com/psyguy/skewness-staging/tree/main/figures). The figures are also referenced individually in @sec-simulation-results and @sec-additional-analyses-and-figures of this document.
 
-Before we begin, we need to read the scripts to include them in this document. By default, none of the scripts run here (as they are time consuming). To run the scripts of each component, you can change the following variables to `TRUE` and re-render the document:
+To replicate the study from the scratch, you should first either clone the repository (using `git clone https://github.com/psyguy/skewness-staging.git`) or [download the repository as a zip file {{< fa download >}}](https://github.com/psyguy/skewness-staging/archive/refs/heads/main.zip) and extract it on your machine. Then you can sequentially run the `.R` files you find in the `scripts` folder. Note that you would need to have a licensed version of *M*plus version 8.6 [@muthen_2017_MplusUserGuide] on your machine to run the whole study. Instead of running the scripts separately, if you have [Quarto installed {{< fa globe >}}](https://quarto.org/docs/get-started/), you can also compile `Code documentations.qmd` located in the root directory using Quarto after setting the following variables to `TRUE`:
 
 ```{r}
 #| eval: true
+#| echo: true
 #| code-fold: false
-runComponent_Simulation <- FALSE
-runComponent_Analysis <- FALSE
-runComponent_Harvesting <- FALSE
-runComponent_Reporting <- FALSE
+study_RunPipeline <- FALSE
+study_MakeMainPlots <- FALSE
+study_MakeAdditionalPlots <- FALSE
 ```
 
-In case you want to change the scripts (e.g., to run a smaller portion of the simulation, or try other parameters, etc.), you should look up the `kintr` parameters called in each chunk (with `<<some_param>>`) and find the corresponding code (under `## @knitr some_param`) in the `scripts` folder.
+Finally, in case you want to change the scripts (e.g., to run a smaller portion of the simulation, or try other parameters, etc.), you should look up the `kintr` parameters called in each chunk (with `<<some_param>>`) and find the corresponding code (under `## @knitr some_param`) in the `scripts` folder.
 
 ```{r}
 #| label: setup
@@ -98,20 +101,20 @@ In case you want to change the scripts (e.g., to run a smaller portion of the si
 #| cache: false
 #| freeze: false
 
+library(knitr)
+
 scripts <- list.files(path = "scripts/",
-                      # pattern = ".r|.R",
                       full.names = TRUE)
 
 sapply(scripts, knitr::read_chunk)
 
-runComponent_Initialization <- runComponent_Simulation | runComponent_Analysis | runComponent_Harvesting | runComponent_Reporting
-
-library(knitr)
+study_Initialize <- study_RunPipeline | study_MakeMainPlots | study_MakeAdditionalPlots
 
 ```
 
-```{r, eval = runComponent_Initialization}
+```{r, eval = study_Initialize}
 #| include: false
+#| echo: false
 <<load_packages>>
 ```
 
@@ -161,7 +164,7 @@ $$
 
 ##### Code
 
-```{r, eval = runComponent_Simulation}
+```{r, eval = study_Initialize}
 <<dgm_nar>>
 ```
 
@@ -188,7 +191,7 @@ $$
 
 ##### Code
 
-```{r, eval = runComponent_Simulation}
+```{r, eval = study_Initialize}
 <<dgm_chiar>>
 ```
 
@@ -220,7 +223,7 @@ $$
 
 ##### Code
 
-```{r, eval = runComponent_Simulation}
+```{r, eval = study_Initialize}
 <<dgm_binar>>
 ```
 
@@ -248,7 +251,7 @@ $$
 
 ##### Code
 
-```{r, eval = runComponent_Simulation}
+```{r, eval = study_Initialize}
 <<dgm_podar>>
 ```
 :::
@@ -264,7 +267,7 @@ Given that, in each model, two canonical parameters characterize the dynamic and
 
 The function `dgm_parameterizer` calculates canonical/model-implied parameters of a given DGM (specified using the `Model` argument) based on the parameters given to it as arguments, and saves them in a list of parameters (`pa`), which s returned by the function. The function makes sure that the set of parameters provided are sufficient to characterize the dynamic parameter of the model (i.e., the autoregression $\phi$) and at least one of the marginal parameters (importantly, the mean $\mu$) but giving default values to some parameters.
 
-```{r, eval = runComponent_Simulation}
+```{r, eval = study_Initialize}
 <<dgm_parameterizer>>
 ```
 
@@ -274,7 +277,7 @@ The function `dgm_generator` gets a set of parameters (either as separate argume
 
 Then, it passes the `pa` list to `dgm_parameterizer` to do the necessary conversions to complete the list of canonical and model-implied parameters. Finally, given the model name, it checks if non-canonical parameters $k$ and $c$ are set (otherwise assigns appropriate defaults to them), and passes the complete parameter list to the respective DGM function.
 
-```{r, eval = runComponent_Simulation}
+```{r, eval = study_Initialize}
 <<dgm_generator>>
 ```
 :::
@@ -288,7 +291,7 @@ The machinery described above can be used to generate individual ($N=1$) time se
 
 The function `dgm_make.sample` generates a dataset of time series of length `T` with the autoregressive parameter `phi` from a desired DGM (determined by the `Model` argument) given a vector of means (passed as the argument `Means`). The length of `Means` determine the number of individuals in the dataset (`N <- length(Means)`). If `Means` is not provided, a randomly generated vector of $N = 100$ is used as default. Since each individual time series is generated with a random seed, we need a vector of `N` unique seeds, which can be provided using the `seeds` argument. In case `seeds` is not provided, it is generated based on the provided means (`seeds.from.means`), and if it is a scalar, the seeds vector is created by adding the scalar to the `seeds.from.means` (which would allow generating different datasets with the same mean distributions).
 
-```{r, eval = runComponent_Simulation}
+```{r, eval = study_Initialize}
 <<dgm_make.sample>>
 ```
 
@@ -360,7 +363,7 @@ ggsave("Mean_vs_Skewness.png",
 
 We then use a wrapper (`make_datasets`) around `dgm_make.sample` that generates datasets for all four DGMs with the appropriate level-2 parameters specified above. Note that here we first generate more than enough (i.e., $2 \times N$) samples of means to make sure we end up with $N$ samples after applying the upper and lower bounds. The datasets are then saved, with some additional variables in separate `.rds` files, using wrapper functions described in @sec-pipeline-functions.
 
-```{r, eval = runComponent_Simulation}
+```{r, eval = study_Initialize}
 <<make_datasets>>
 ```
 :::
@@ -369,7 +372,7 @@ We then use a wrapper (`make_datasets`) around `dgm_make.sample` that generates 
 
 We analyzed each dataset with AR(1) models with fixed and random residual variance using *M*plus v. 8.1 [@muthen_2017_MplusUserGuide]. To interface *M*plus from R, we used the package `MplusAutomation` [@hallquist_2018_MplusAutomationPackageFacilitating] and wrote a function (`run_MplusAutomation`) that for each iteration of each condition would save the dataset as a `.dat` file, generate the `.inp` input script for the desired analysis type, and run the model for that dataset. *M*plus then saves the output files (`.out` and `.gh5`). After the analysis, `run_MplusAutomation` extracts parameter estimates and returns them in an `R` object, which, with some additional variables, are saved in separate `.rds` files using wrapper functions described in @sec-pipeline-functions.
 
-```{r, eval = runComponent_Simulation}
+```{r, eval = study_Initialize}
 <<run_MplusAutomation>>
 ```
 
@@ -411,7 +414,7 @@ Extracting parameter estimates of individual analyses
 
 The function `fit_extract` gets an `.rds` file generated by `do_fit_doFuture` (see @sec-pipeline-functions)---which includes book-keeping information and Mplus output object that was generated by `run_MplusAutomation` (see @sec-analysis-component)---and extracts the `unstandardized` and `stdyx.standardized` *M*plus parameter estimates and stores them, along with the additional book-keeping information, in a dataframe.
 
-```{r, eval = runComponent_Simulation}
+```{r, eval = study_Initialize}
 <<fit_extract>>
 ```
 
@@ -421,7 +424,7 @@ This component includes a function that clean the harvested dataset (and extract
 
 Given that the figures contain customized typefaces (from the `CMU Serif` and `Merriweather` font families), we need to make load the fonts:
 
-```{r, eval = runComponent_Simulation}
+```{r, eval = study_Initialize}
 <<report_initialization>>
 ```
 
@@ -429,7 +432,7 @@ Given that the figures contain customized typefaces (from the `CMU Serif` and `M
 
 Given that the output of `fit_extract` has too much information in it, the function `harvest_cleanup` extracts the relevant parameter estimates---the point estimates and the upper and lower 2.5 crediblity intervals of level-2 covariance (`unstd X.WITH.PHI)`, level-2 correlation (`stdyx X.WITH.PHI`), and fixed-effect autoregressive parameter at level 2 (`unstd Means.PHI`)---cleans the datasets and makes it *tidy*, and calculates the outcomes of interest, namely, the (absolute) average estimates, mean absolute and squared error, root mean squared error, estimation bias and variance, number and percentage of of non-converged datasets, and the percentages of significantly positive or negative or non-significant parameter estimates.
 
-```{r, eval = runComponent_Simulation}
+```{r, eval = study_Initialize}
 <<harvest_cleanup>>
 ```
 
@@ -442,7 +445,7 @@ These functions visualize datasets (simulated or empirical) by generating indivi
 
 The function `plot_histograms` makes person histograms of the individuals in a dataset (stored as dataframes) and arranges them based on individual means.
 
-```{r, eval = runComponent_Simulation}
+```{r, eval = study_Initialize}
 <<plot_histograms>>
 ```
 
@@ -450,7 +453,7 @@ The function `plot_histograms` makes person histograms of the individuals in a d
 
 The function `plot_pairplots` calculates the mean, variance, and skewness of each individual in a dataset (stored as dataframes) and generates pairplots of their joint distribution.
 
-```{r, eval = runComponent_Simulation}
+```{r, eval = study_Initialize}
 <<plot_pairplots>>
 ```
 
@@ -458,13 +461,13 @@ The function `plot_pairplots` calculates the mean, variance, and skewness of eac
 
 The function `plot_dataset.profile` gets a simulated object (generated by `do_sim_parallel`) and combines individual histograms and pairplots in a single figure.
 
-```{r, eval = runComponent_Simulation}
+```{r, eval = study_Initialize}
 <<plot_dataset.profile>>
 ```
 
 We also write the function `save_dataset_profile` to put together two dataset profile plots to get to plots similar to those in Figures S1, S2, S4, and S5 in the Supplemental Materials, and save the final figure as a PDF file.
 
-```{r, eval = runComponent_Simulation}
+```{r, eval = study_Initialize}
 <<save_dataset_profile>>
 ```
 :::
@@ -478,7 +481,7 @@ The functions here make the main figures of the paper, which include aspects of 
 
 The function `plot_Model.x.Resid` makes a figure with two columns (for the models with fixed or random residual variance), that show the outcomes of a fit measure (e.g., bias) for all the four DGMs with a given level-2 distribution of means for different $N$s and $T$s.
 
-```{r, eval = runComponent_Simulation}
+```{r, eval = study_Initialize}
 <<plot_Model.x.Resid>>
 ```
 
@@ -486,7 +489,7 @@ The function `plot_Model.x.Resid` makes a figure with two columns (for the model
 
 The function `plot_quadrants` makes a larger figure that includes four *quadrants*, each generated with `plot_Model.x.Resid`., that show the main results of the paper.
 
-```{r, eval = runComponent_Simulation}
+```{r, eval = study_Initialize}
 <<plot_quadrants>>
 ```
 :::
@@ -495,7 +498,7 @@ The function `plot_quadrants` makes a larger figure that includes four *quadrant
 
 The function `plot_caterpillar` , for a given condition and a given parameter, makes plots of 95% confidence intervals (as vertical bars) of all converged replications within that condition. The lines are ordered based on the point estimates and are colored based on whether they crossed zero (the correct estimate) or whether the whole 95% interval was bellow or above zero (significantly negative or positive estimates).
 
-```{r, eval = runComponent_Simulation}
+```{r, eval = study_Initialize}
 <<plot_caterpillar>>
 ```
 
@@ -503,7 +506,7 @@ The function `plot_caterpillar` , for a given condition and a given parameter, m
 
 A function was also made to make profiles of individual time series, that include the time series itself, its marginal distribution, and its sample ACF.
 
-```{r, eval = runComponent_Simulation}
+```{r, eval = study_Initialize}
 <<plot_dgm.profile>>
 ```
 
@@ -522,7 +525,7 @@ The function `make_sim_refs` makes a table consisting of all possible combinatio
 
 For each condition, a unique seed is generated by weighting different conditions (that are indexed in a vector `d.integer`) by prime numbers (that are not among the prime factors of the number of conditions) and summing them up (which is done with dot-producting `d.integer %*% primes.seq`). Then, to make unique seeds per replications, the replication number is concatenated to the left side of `d.integer %*% primes.seq`, and everything is put into a dataframe (called `d.headers`, that is eventually returned by the function) with unique file names for individual `.rds` files (that include `uSeed` as well as the replication number and the value of condition used in data generation, e.g., `sim_uSeed-13293_l2.dist-Chi2_Model-BinAR_N-100_phi-0.4_T-100_sim.Seed-0_Rep-1`) and the address of the folder in which the `.rds` files were stored. Finally, if desired, the simulation reference table `d.headers` is saved as `.csv` and `.rds`.
 
-```{r, eval = runComponent_Analysis}
+```{r, eval = study_Initialize}
 <<make_sim_refs>>
 ```
 
@@ -536,7 +539,7 @@ Changing the conditions (omitting `Model == "DAR"` and `T == 30` from the simula
 
 Another dataframe was generated to include the references of analyses results per simulation condition and analysis condition (or *hyperparameter*s), and file names and directory of individual `.rds` analysis outputs. The hyperparameters included the analysis type (with fixed vs. random residual variance) and the number of iterations and thinning in the MCMC algorithm, which were then used as arguments of `run_MplusAutomation`.
 
-```{r, eval = runComponent_Analysis}
+```{r, eval = study_Initialize}
 <<make_fit_refs>>
 ```
 :::
@@ -550,7 +553,7 @@ We implemented the components described in @sec-components using the following f
 
 The function `do_sim_parallel` is a wrapper around `make_datasets` (see @sec-dataset-generation) and uses the `clusterApplyLB` function from the package `snow` [@tierney_2021_SnowSimpleNetwork] for parallelization. This wrapper gets the dataframe of simulation file references (`sim_refs`, which is the output of `make_sim_refs`), and for each of its rows, simulates an $N \times T$ dataframe and stores it with other information in the same row---and also additional info about the time the simulating the dataset started and ended---in a list, and saves each list as a separate `.rds` file in the target folder (specified with `sim.Path`). Having the additional data in the saved files allow using them independent from the table of references. Note that to prevent the overload of the hard drive with many parallel write requests (to save the simulated datasets), for the first `nClust` rounds, using the `Sys.sleep` function, the data generation is started after a varying amount of delay. Given that every dataset simulation in the first round may take different amount of times, after the first round is complete, the simulations on different cores fall out of sync and there is no more need for adding delays for the next rounds.
 
-```{r, eval = runComponent_Analysis}
+```{r, eval = study_Initialize}
 <<do_sim_parallel>>
 ```
 
@@ -558,7 +561,7 @@ The function `do_sim_parallel` is a wrapper around `make_datasets` (see @sec-dat
 
 The function `do_fit_doFuture` is a wrapper around `run_MplusAutomation` (see @sec-analysis-component) and uses the package `doFuture` [@bengtsson_2021_UnifyingFrameworkParallel] as a parallelization backend to `plyr::a_ply`. The function gets a dataframe containing references of analyses results (`fit_refs`, which is the output of `make_fit_refs`), and row by row reads the simulated datasets, sub-samples the data if $N < 100$ or $T < 100$ (see the second note under `make_sim_refs` in @sec-bookkeeping) and runs the analysis based on the hyperparameters specified in `fit_refs`. It then saves the outcome of the analysis (the *M*plus model object produced by `MplusAutomation::mplusModeler` and returned by `run_MplusAutomation`), which includes *M*plus outputs and parameter estimates) with additional information (other values in the same row of `fit_refs` as well as timings) in separate `.rds` files in the target folder. Note that, again, to prevent the overload of the hard drive with many parallel read and write requests (to read the simulated datasets and save the *M*plus outputs), for the first `nClust` rounds, using the `Sys.sleep` function, the data analysis is started after a varying amount of delay. Given that every analysis instance in the first round take different amount of times, after the first round is complete the analyses on cores fall out of sync and there is no more need for adding delays for the next rounds.
 
-```{r, eval = runComponent_Analysis}
+```{r, eval = study_Initialize}
 <<do_fit_doFuture>>
 ```
 
@@ -566,7 +569,7 @@ The function `do_fit_doFuture` is a wrapper around `run_MplusAutomation` (see @s
 
 The function `do_harvest_doFuture` is a wrapper around `fit_extract` (see @sec-harvesting-component) and uses the package `doFuture` as a parallelization backend to `foreach`. It gets a list of `.rds` files (that can be taken from or `fit_refs`, or by using `list.files` function in the directory in which the analysis results are saved) and returns a large dataframe including parameter estimates (and additional information) extracted by `fit_extract`. Again, like in `do_sim_parallel` and `do_fit_doFuture`, the first `nClust` files are read with varying amount of delay to prevent the overload of the hard drive by multiple read requests.
 
-```{r, eval = runComponent_Analysis}
+```{r, eval = study_Initialize}
 <<do_harvest_doFuture>>
 ```
 :::
@@ -581,8 +584,9 @@ The following is the code we used to run the whole pipeline, which consists of t
 
 But first we need to set the directories in which the results of each chunk is saved:
 
-```{r, eval = runComponent_Analysis}
+```{r, eval = study_Initialize}
 #| code-fold: false
+#| echo: true
 <<pipeline_set_directories>>
 ```
 
@@ -591,7 +595,7 @@ But first we need to set the directories in which the results of each chunk is s
 
 The following code makes `sim_refs` and `fit_refs` tables and make backups of them. In line 17 the rows with `T != 100` and `Model == "DAR"` are omitted, and with the codes in lines 22-31 we add other values of $N$s and $T$s (see the notes under `make_sim_refs` in @sec-bookkeeping).
 
-```{r, eval = runComponent_Analysis}
+```{r, eval = study_RunPipeline}
 <<pipeline_make_references>>
 ```
 
@@ -599,7 +603,7 @@ The following code makes `sim_refs` and `fit_refs` tables and make backups of th
 
 Here we reads the reference tables `sim_refs` and `fit_refs`. We then make a list of already simulated files (that are located in the `sim.Path` directory) and a list of analysis output files (that are located in the `fit.Path` directory). Then, by comparing `sim_refs` and `fit_refs` with the the lists of simulated and analyzed files, we only simulate/analyze the datasets that have not been yet simulated/analyzed. This allows us resume the simulation study after an interruption to the R session.
 
-```{r, eval = runComponent_Analysis}
+```{r, eval = study_RunPipeline}
 <<pipeline_run_study>>
 ```
 
@@ -607,18 +611,18 @@ Here we reads the reference tables `sim_refs` and `fit_refs`. We then make a lis
 
 Finally, the analyzed datasets are read using `do_harvest_doFuture` in parallel and stored in an `.rds` file suffixed with date and time (to prevent over-writing the previously saved harvest files). Furthermore, using the function `harvest_cleanup` (of @sec-report-clean-harvest), an abridged version (`d_abridged`, including all results of all replications for the parameters of interest) and a more summarized version (`d_important`, containing the outcome measures of interest per condition) of the raw harvest dataframe are made and saved in two `.rds` files (again suffixed with date and time).
 
-```{r, eval = runComponent_Analysis}
+```{r, eval = study_RunPipeline}
 <<pipeline_harvest_results>>
 ```
 :::
 
 # Simulation results {#sec-simulation-results}
 
-We read the abridged harvested data file (`harvest-important_***.rds`) and make the outcome plots using `plot_Model.x.Resid` and `plot_quadrants` functions (of @sec-report-estimation-plots ) and the MCMC estimates coverage plots using the function `plot_caterpillar` (of @sec-report-caterpillar-plots). To ensure small file size and good resolutions, all plots are saved in separate PDF files (which can easily be included in a `r ifelse(knitr::is_html_output(), r"($\mathrm{\LaTeX{}}$)", r"(\LaTeX{})")` script) in a specific directory.
+We read the abridged harvested data file (`harvest-important_***.rds`) and make the outcome plots using `plot_Model.x.Resid` and `plot_quadrants` functions (of @sec-report-estimation-plots ) and the MCMC estimates coverage plots using the function `plot_caterpillar` (of @sec-report-caterpillar-plots). To ensure small file size and good resolutions, all plots are saved in separate PDF files (which can easily be included in a `r ifelse(knitr::is_html_output(), r"($\mathrm{\LaTeX{}}$)", r"(\LaTeX{})")` script) in a specific directory. Before going any further, we should read the abridged harvest dataframe and set the plot output folder.
 
-We first read the abridged harvest dataframe and set the plot output folder:
-
-```{r, eval = runComponent_Simulation}
+```{r, eval = study_MakeMainPlots}
+#| echo: true
+#| code-fold: false
 <<results_read_harvest>>
 ```
 
@@ -629,57 +633,59 @@ We first read the abridged harvest dataframe and set the plot output folder:
 
 The left and right panels (including results for Gaussian and $\chi^2$ distributed means) are made for each outcome measure of interest using `plot_Model.x.Resid`, combined using the package `patchwork`, and saved as PDF files.
 
-```{r, eval = runComponent_Analysis}
+```{r, eval = study_MakeMainPlots}
 <<results_plots_measures_single>>
 ```
 
+::: {.content-visible when-format="html"}
 The generated plots are located in `figures` folder and can be accessed via the following tables:
 
-+----------------------------+-------------------------------------------------------------------+------------------------------------------------------------------+
-| Outcome measures           | Correlations                                                      | Covariances                                                      |
-+============================+===================================================================+==================================================================+
-| Bias                       | [{{< fa file-pdf >}}](./figures/Correlation (Bias).pdf)           | [{{< fa file-pdf >}}](./figures/Covariance (Bias).pdf)           |
-+----------------------------+-------------------------------------------------------------------+------------------------------------------------------------------+
-| Variance                   | [{{< fa file-pdf >}}](./figures/Correlation (Variance).pdf)       | [{{< fa file-pdf >}}](./figures/Covariance (Variance).pdf)       |
-+----------------------------+-------------------------------------------------------------------+------------------------------------------------------------------+
-| RMSE                       | [{{< fa file-pdf >}}](./figures/Correlation (RMSE).pdf)           | [{{< fa file-pdf >}}](./figures/Covariance (RMSE).pdf)           |
-+----------------------------+-------------------------------------------------------------------+------------------------------------------------------------------+
-| MAE                        | [{{< fa file-pdf >}}](./figures/Correlation (MAE).pdf)            | [{{< fa file-pdf >}}](./figures/Covariance (MAE).pdf)            |
-+----------------------------+-------------------------------------------------------------------+------------------------------------------------------------------+
-| Positive Type-I error rate | [{{< fa file-pdf >}}](./figures/Correlation (Positive error).pdf) | [{{< fa file-pdf >}}](./figures/Covariance (Positive error).pdf) |
-+----------------------------+-------------------------------------------------------------------+------------------------------------------------------------------+
-| Negative Type-I error rate | [{{< fa file-pdf >}}](./figures/Correlation (Negative error).pdf) | [{{< fa file-pdf >}}](./figures/Covariance (Negative error).pdf) |
-+----------------------------+-------------------------------------------------------------------+------------------------------------------------------------------+
-| Total Type-I error rate    | [{{< fa file-pdf >}}](./figures/Correlation (Total error).pdf)    | [{{< fa file-pdf >}}](./figures/Covariance (Total error).pdf)    |
-+----------------------------+-------------------------------------------------------------------+------------------------------------------------------------------+
++----------------------------+-----------------------------------------------------------------------+----------------------------------------------------------------------+
+| Outcome measures           | Correlations                                                          | Covariances                                                          |
++============================+=======================================================================+======================================================================+
+| Bias                       | [{{< fa file-pdf >}}](./figures/Correlation%20(Bias).pdf)             | [{{< fa file-pdf >}}](./figures/Covariance%20(Bias).pdf)             |
++----------------------------+-----------------------------------------------------------------------+----------------------------------------------------------------------+
+| Variance                   | [{{< fa file-pdf >}}](./figures/Correlation%20(Variance).pdf)         | [{{< fa file-pdf >}}](./figures/Covariance%20(Variance).pdf)         |
++----------------------------+-----------------------------------------------------------------------+----------------------------------------------------------------------+
+| RMSE                       | [{{< fa file-pdf >}}](./figures/Correlation%20(RMSE).pdf)             | [{{< fa file-pdf >}}](./figures/Covariance%20(RMSE).pdf)             |
++----------------------------+-----------------------------------------------------------------------+----------------------------------------------------------------------+
+| MAE                        | [{{< fa file-pdf >}}](./figures/Correlation%20(MAE).pdf)              | [{{< fa file-pdf >}}](./figures/Covariance%20(MAE).pdf)              |
++----------------------------+-----------------------------------------------------------------------+----------------------------------------------------------------------+
+| Positive Type-I error rate | [{{< fa file-pdf >}}](./figures/Correlation%20(Positive%20error).pdf) | [{{< fa file-pdf >}}](./figures/Covariance%20(Positive%20error).pdf) |
++----------------------------+-----------------------------------------------------------------------+----------------------------------------------------------------------+
+| Negative Type-I error rate | [{{< fa file-pdf >}}](./figures/Correlation%20(Negative%20error).pdf) | [{{< fa file-pdf >}}](./figures/Covariance%20(Negative%20error).pdf) |
++----------------------------+-----------------------------------------------------------------------+----------------------------------------------------------------------+
+| Total Type-I error rate    | [{{< fa file-pdf >}}](./figures/Correlation%20(Total%20error).pdf)    | [{{< fa file-pdf >}}](./figures/Covariance%20(Total%20error).pdf)    |
++----------------------------+-----------------------------------------------------------------------+----------------------------------------------------------------------+
 
 : Individual plots of outcome measures
+:::
 
 ### Plots of two outcome measures combined
 
 The plots containing pairs of outcome measures (respectively including results for Gaussian and $\chi^2$ distributed means) are made for each outcome measure of interest, combined using the package `patchwork`, and saved as PDF files.
 
-```{r, eval = runComponent_Analysis}
+```{r, eval = study_MakeMainPlots}
 <<results_plots_measures_pairs>>
 ```
 
 The generated plots are located in `figures` folder and can be accessed via the following tables:
 
-+------------------------------------+--------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------+
-| Outcome measures                   | Correlations                                                                         | Covariances                                                                         |
-+====================================+======================================================================================+=====================================================================================+
-| Bias and Variance                  | [{{< fa file-pdf >}}](./figures/Correlation (Bias and Variance).pdf)                 | [{{< fa file-pdf >}}](./figures/Covariance (Bias and Variance).pdf)                 |
-+------------------------------------+--------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------+
-| Bias and RMSE                      | [{{< fa file-pdf >}}](./figures/Correlation (Bias and RMSE).pdf)                     | [{{< fa file-pdf >}}](./figures/Covariance (Bias and RMSE).pdf)                     |
-+------------------------------------+--------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------+
-| Bias and MAE                       | [{{< fa file-pdf >}}](./figures/Correlation (Bias and MAE).pdf)                      | [{{< fa file-pdf >}}](./figures/Covariance (Bias and MAE).pdf)                      |
-+------------------------------------+--------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------+
-| Positive and negative Type-I error | [{{< fa file-pdf >}}](./figures/Correlation (Positive error and Negative error).pdf) | [{{< fa file-pdf >}}](./figures/Covariance (Positive error and Negative error).pdf) |
-+------------------------------------+--------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------+
-| Positive and total Type-I error    | [{{< fa file-pdf >}}](./figures/Correlation (Positive error and Total error).pdf)    | [{{< fa file-pdf >}}](./figures/Covariance (Positive error and Total error).pdf)    |
-+------------------------------------+--------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------+
-| Negative and total Type-I error    | [{{< fa file-pdf >}}](./figures/Correlation (Negative error and Total error).pdf)    | [{{< fa file-pdf >}}](./figures/Covariance (Negative error and Total error).pdf)    |
-+------------------------------------+--------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------+
++------------------------------------+------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
+| Outcome measures                   | Correlations                                                                                   | Covariances                                                                                   |
++====================================+================================================================================================+===============================================================================================+
+| Bias and Variance                  | [{{< fa file-pdf >}}](./figures/Correlation%20(Bias%20and%20Variance).pdf)                     | [{{< fa file-pdf >}}](./figures/Covariance%20(Bias%20and%20Variance).pdf)                     |
++------------------------------------+------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
+| Bias and RMSE                      | [{{< fa file-pdf >}}](./figures/Correlation%20(Bias%20and%20RMSE).pdf)                         | [{{< fa file-pdf >}}](./figures/Covariance%20(Bias%20and%20RMSE).pdf)                         |
++------------------------------------+------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
+| Bias and MAE                       | [{{< fa file-pdf >}}](./figures/Correlation%20(Bias%20and%20MAE).pdf)                          | [{{< fa file-pdf >}}](./figures/Covariance%20(Bias%20and%20MAE).pdf)                          |
++------------------------------------+------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
+| Positive and negative Type-I error | [{{< fa file-pdf >}}](./figures/Correlation%20(Positive%20error%20and%20Negative%20error).pdf) | [{{< fa file-pdf >}}](./figures/Covariance%20(Positive%20error%20and%20Negative%20error).pdf) |
++------------------------------------+------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
+| Positive and total Type-I error    | [{{< fa file-pdf >}}](./figures/Correlation%20(Positive%20error%20and%20Total%20error).pdf)    | [{{< fa file-pdf >}}](./figures/Covariance%20(Positive%20error%20and%20Total%20error).pdf)    |
++------------------------------------+------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
+| Negative and total Type-I error    | [{{< fa file-pdf >}}](./figures/Correlation%20(Negative%20error%20and%20Total%20error).pdf)    | [{{< fa file-pdf >}}](./figures/Covariance%20(Negative%20error%20and%20Total%20error).pdf)    |
++------------------------------------+------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
 
 : Combined plots of two outcome measures
 :::
@@ -688,10 +694,11 @@ The generated plots are located in `figures` folder and can be accessed via the 
 
 It should be noted that `plot_caterpillar` requires the abridged dataset of harvested results (`d_abridged`) that contain estimates of all replications within each condition.
 
-```{r, eval = runComponent_Analysis}
+```{r, eval = study_MakeMainPlots}
 <<results_plots_caterpillar>>
 ```
 
+::: {.content-visible when-format="html"}
 The generated plots are located in `figures` folder and can be accessed via the following tables:
 
 +-------------------+-----------------------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------+
@@ -753,6 +760,7 @@ The generated plots are located in `figures` folder and can be accessed via the 
 +-------------------+----------------------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------+
 
 : MCMC parameter estimates coverage plots for **covariances**
+:::
 
 # Additional figures and analyses {#sec-additional-analyses-and-figures}
 
@@ -763,34 +771,38 @@ We make plots including time series plots, marginal distributions, and sample AC
 ::: panel-tabset
 ### Combining DGM outputs in one dataframe
 
-```{r, eval = runComponent_Simulation}
+```{r, eval = study_MakeAdditionalPlots}
 <<make_dgm_df>>
 ```
 
 ### Making the plots
 
-```{r, eval = runComponent_Simulation}
+```{r, eval = study_MakeAdditionalPlots}
 <<additional_plots_dgms>>
 ```
 
 ### Saving the plots
 
-```{r, eval = runComponent_Simulation}
+```{r, eval = study_MakeAdditionalPlots}
 <<additional_plots_dgms_save>>
 ```
 :::
 
+::: {.content-visible when-format="html"}
 The generated time series plots of the AR(1) [{{< fa file-pdf >}}](./figures/Profile%20NAR.pdf), $\chi^2$AR(1) [{{< fa file-pdf >}}](./figures/Profile%20Chi2AR.pdf), BinAR(1) [{{< fa file-pdf >}}](./figures/Profile%20BinAR.pdf), and PoDAR(1) [{{< fa file-pdf >}}](./figures/Profile%20PoDAR.pdf) models are saved in the `figures` folder (see also combined plots, [{{< fa file-pdf >}}](./figures/Profile%20alternative%20DGMs.pdf) and [{{< fa file-pdf >}}](./figures/Profile%20four%20DGMs.pdf)).
+:::
 
 ## Profiles of the simulated datasets {#sec-profiles-of-simulated-datasets}
 
 We read the first replication of simulated datasets with $N = 100, T = 100$ and plot using the function `plot_dataset.profile` (from @sec-make-distribution-plots).
 
-```{r, eval = runComponent_Analysis}
+```{r, eval = study_MakeAdditionalPlots}
 <<additional_plots_dataset_profiles>>
 ```
 
+::: {.content-visible when-format="html"}
 The generated distribution plots of the AR(1) [{{< fa file-pdf >}}](./figures/profiles-dataset-nar.pdf), $\chi^2$AR(1) [{{< fa file-pdf >}}](./figures/profiles-dataset-chiar.pdf), BinAR(1) [{{< fa file-pdf >}}](./figures/profiles-dataset-binar.pdf), and PoDAR(1) [{{< fa file-pdf >}}](./figures/profiles-dataset-podar.pdf) models are saved in the figures folder.
+:::
 
 ## COGITO data analysis {#sec-cogito-data-analysis}
 
