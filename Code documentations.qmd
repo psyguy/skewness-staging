@@ -31,7 +31,7 @@ format:
     number-depth: 8
     #number-offset: -1
     toc: true
-    output-file: Code documentation
+    output-file: Code documentations
     toc-depth: 8
 ## For html
 execute:
