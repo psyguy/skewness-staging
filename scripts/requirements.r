@@ -14,6 +14,7 @@ libs_used <-
     "patchwork",
     "RColorBrewer",
     "ggpubr",
+    "ggthemes",
     "ggExtra",
     "primes")
 

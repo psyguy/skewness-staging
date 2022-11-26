@@ -12,7 +12,8 @@ format:
     toc: true
     toc-location: left
     toc-depth: 5
-    self-contained: false
+    self-contained: true
+    self-contained-math: false
     code-summary: "Click to expand the code"
     anchor-sections: true
     reference-location: document
@@ -604,7 +605,7 @@ Here we reads the reference tables `sim_refs` and `fit_refs`. We then make a lis
 
 ### Harvesting and cleaning the results
 
-Finally, the analyzed datasets are read using `do_harvest_doFuture` in parallel and stored in an `.rds` file suffixed with date and time (to prevent over-writing the previously saved harvest files). Furthermore, using the function `harvest_cleanup` (of @sec-report-clean-harvest), a clean, abridged version of the raw harvest dataframe (only containing the important outcome measures of interest) is made and saved in another `.rds` file (again suffixed with date and time).
+Finally, the analyzed datasets are read using `do_harvest_doFuture` in parallel and stored in an `.rds` file suffixed with date and time (to prevent over-writing the previously saved harvest files). Furthermore, using the function `harvest_cleanup` (of @sec-report-clean-harvest), an abridged version (`d_abridged`, including all results of all replications for the parameters of interest) and a more summarized version (`d_important`, containing the outcome measures of interest per condition) of the raw harvest dataframe are made and saved in two `.rds` files (again suffixed with date and time).
 
 ```{r, eval = runComponent_Analysis}
 <<pipeline_harvest_results>>
@@ -632,6 +633,28 @@ The left and right panels (including results for Gaussian and $\chi^2$ distribut
 <<results_plots_measures_single>>
 ```
 
+The generated plots are located in `figures` folder and can be accessed via the following tables:
+
++----------------------------+-------------------------------------------------------------------+------------------------------------------------------------------+
+| Outcome measures           | Correlations                                                      | Covariances                                                      |
++============================+===================================================================+==================================================================+
+| Bias                       | [{{< fa file-pdf >}}](./figures/Correlation (Bias).pdf)           | [{{< fa file-pdf >}}](./figures/Covariance (Bias).pdf)           |
++----------------------------+-------------------------------------------------------------------+------------------------------------------------------------------+
+| Variance                   | [{{< fa file-pdf >}}](./figures/Correlation (Variance).pdf)       | [{{< fa file-pdf >}}](./figures/Covariance (Variance).pdf)       |
++----------------------------+-------------------------------------------------------------------+------------------------------------------------------------------+
+| RMSE                       | [{{< fa file-pdf >}}](./figures/Correlation (RMSE).pdf)           | [{{< fa file-pdf >}}](./figures/Covariance (RMSE).pdf)           |
++----------------------------+-------------------------------------------------------------------+------------------------------------------------------------------+
+| MAE                        | [{{< fa file-pdf >}}](./figures/Correlation (MAE).pdf)            | [{{< fa file-pdf >}}](./figures/Covariance (MAE).pdf)            |
++----------------------------+-------------------------------------------------------------------+------------------------------------------------------------------+
+| Positive Type-I error rate | [{{< fa file-pdf >}}](./figures/Correlation (Positive error).pdf) | [{{< fa file-pdf >}}](./figures/Covariance (Positive error).pdf) |
++----------------------------+-------------------------------------------------------------------+------------------------------------------------------------------+
+| Negative Type-I error rate | [{{< fa file-pdf >}}](./figures/Correlation (Negative error).pdf) | [{{< fa file-pdf >}}](./figures/Covariance (Negative error).pdf) |
++----------------------------+-------------------------------------------------------------------+------------------------------------------------------------------+
+| Total Type-I error rate    | [{{< fa file-pdf >}}](./figures/Correlation (Total error).pdf)    | [{{< fa file-pdf >}}](./figures/Covariance (Total error).pdf)    |
++----------------------------+-------------------------------------------------------------------+------------------------------------------------------------------+
+
+: Individual plots of outcome measures
+
 ### Plots of two outcome measures combined
 
 The plots containing pairs of outcome measures (respectively including results for Gaussian and $\chi^2$ distributed means) are made for each outcome measure of interest, combined using the package `patchwork`, and saved as PDF files.
@@ -639,15 +662,97 @@ The plots containing pairs of outcome measures (respectively including results f
 ```{r, eval = runComponent_Analysis}
 <<results_plots_measures_pairs>>
 ```
+
+The generated plots are located in `figures` folder and can be accessed via the following tables:
+
++------------------------------------+--------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------+
+| Outcome measures                   | Correlations                                                                         | Covariances                                                                         |
++====================================+======================================================================================+=====================================================================================+
+| Bias and Variance                  | [{{< fa file-pdf >}}](./figures/Correlation (Bias and Variance).pdf)                 | [{{< fa file-pdf >}}](./figures/Covariance (Bias and Variance).pdf)                 |
++------------------------------------+--------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------+
+| Bias and RMSE                      | [{{< fa file-pdf >}}](./figures/Correlation (Bias and RMSE).pdf)                     | [{{< fa file-pdf >}}](./figures/Covariance (Bias and RMSE).pdf)                     |
++------------------------------------+--------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------+
+| Bias and MAE                       | [{{< fa file-pdf >}}](./figures/Correlation (Bias and MAE).pdf)                      | [{{< fa file-pdf >}}](./figures/Covariance (Bias and MAE).pdf)                      |
++------------------------------------+--------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------+
+| Positive and negative Type-I error | [{{< fa file-pdf >}}](./figures/Correlation (Positive error and Negative error).pdf) | [{{< fa file-pdf >}}](./figures/Covariance (Positive error and Negative error).pdf) |
++------------------------------------+--------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------+
+| Positive and total Type-I error    | [{{< fa file-pdf >}}](./figures/Correlation (Positive error and Total error).pdf)    | [{{< fa file-pdf >}}](./figures/Covariance (Positive error and Total error).pdf)    |
++------------------------------------+--------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------+
+| Negative and total Type-I error    | [{{< fa file-pdf >}}](./figures/Correlation (Negative error and Total error).pdf)    | [{{< fa file-pdf >}}](./figures/Covariance (Negative error and Total error).pdf)    |
++------------------------------------+--------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------+
+
+: Combined plots of two outcome measures
 :::
 
 ## Plots of MCMC parameter estimates coverage
 
-It should be noted that `plot_caterpillar` requires the complete (i.e., raw) dataset of harvested results.
+It should be noted that `plot_caterpillar` requires the abridged dataset of harvested results (`d_abridged`) that contain estimates of all replications within each condition.
 
 ```{r, eval = runComponent_Analysis}
 <<results_plots_caterpillar>>
 ```
+
+The generated plots are located in `figures` folder and can be accessed via the following tables:
+
++-------------------+-----------------------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------+
+| Model             | Gaussian-distributed means                                                                                | $\chi^2$-distributed means                                                                            |
++===================+===========================================================================================================+=======================================================================================================+
+| **AR(1)**         | Fixed res. var [{{< fa file-pdf >}}](./figures/caterpillar-Correlation-NAR-Gaussian-resid.fixed.pdf)      | Fixed res. var [{{< fa file-pdf >}}](./figures/caterpillar-Correlation-NAR-Chi2-resid.fixed.pdf)      |
+|                   |                                                                                                           |                                                                                                       |
+|                   | Random res. var [{{< fa file-pdf >}}](./figures/caterpillar-Correlation-NAR-Gaussian-resid.random.pdf)    | Random res. var [{{< fa file-pdf >}}](./figures/caterpillar-Correlation-NAR-Chi2-resid.random.pdf)    |
+|                   |                                                                                                           |                                                                                                       |
+|                   | Combined [{{< fa file-pdf >}}](./figures/caterpillar-Correlation-NAR-Gaussian-both.pdf)                   | Combined [{{< fa file-pdf >}}](./figures/caterpillar-Correlation-NAR-Chi2-both.pdf)                   |
++-------------------+-----------------------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------+
+| $\chi^2$**AR(1)** | Fixed res. var [{{< fa file-pdf >}}](./figures/caterpillar-Correlation-Chi2AR-Gaussian-resid.fixed.pdf)   | Fixed res. var [{{< fa file-pdf >}}](./figures/caterpillar-Correlation-Chi2AR-Chi2-resid.fixed.pdf)   |
+|                   |                                                                                                           |                                                                                                       |
+|                   | Random res. var [{{< fa file-pdf >}}](./figures/caterpillar-Correlation-Chi2AR-Gaussian-resid.random.pdf) | Random res. var [{{< fa file-pdf >}}](./figures/caterpillar-Correlation-Chi2AR-Chi2-resid.random.pdf) |
+|                   |                                                                                                           |                                                                                                       |
+|                   | Combined [{{< fa file-pdf >}}](./figures/caterpillar-Correlation-Chi2AR-Gaussian-both.pdf)                | Combined [{{< fa file-pdf >}}](./figures/caterpillar-Correlation-Chi2AR-Chi2-both.pdf)                |
++-------------------+-----------------------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------+
+| **BinAR(1)**      | Fixed res. var [{{< fa file-pdf >}}](./figures/caterpillar-Correlation-BinAR-Gaussian-resid.fixed.pdf)    | Fixed res. var [{{< fa file-pdf >}}](./figures/caterpillar-Correlation-BinAR-Chi2-resid.fixed.pdf)    |
+|                   |                                                                                                           |                                                                                                       |
+|                   | Random res. var [{{< fa file-pdf >}}](./figures/caterpillar-Correlation-BinAR-Gaussian-resid.random.pdf)  | Random res. var [{{< fa file-pdf >}}](./figures/caterpillar-Correlation-BinAR-Chi2-resid.random.pdf)  |
+|                   |                                                                                                           |                                                                                                       |
+|                   | Combined [{{< fa file-pdf >}}](./figures/caterpillar-Correlation-BinAR-Gaussian-both.pdf)                 | Combined [{{< fa file-pdf >}}](./figures/caterpillar-Correlation-BinAR-Chi2-both.pdf)                 |
++-------------------+-----------------------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------+
+| **PoDAR(1)**      | Fixed res. var [{{< fa file-pdf >}}](./figures/caterpillar-Correlation-PoDAR-Gaussian-resid.fixed.pdf)    | Fixed res. var [{{< fa file-pdf >}}](./figures/caterpillar-Correlation-PoDAR-Chi2-resid.fixed.pdf)    |
+|                   |                                                                                                           |                                                                                                       |
+|                   | Random res. var [{{< fa file-pdf >}}](./figures/caterpillar-Correlation-PoDAR-Gaussian-resid.random.pdf)  | Random res. var [{{< fa file-pdf >}}](./figures/caterpillar-Correlation-PoDAR-Chi2-resid.random.pdf)  |
+|                   |                                                                                                           |                                                                                                       |
+|                   | Combined [{{< fa file-pdf >}}](./figures/caterpillar-Correlation-PoDAR-Gaussian-both.pdf)                 | Combined [{{< fa file-pdf >}}](./figures/caterpillar-Correlation-PoDAR-Chi2-both.pdf)                 |
++-------------------+-----------------------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------+
+
+: MCMC parameter estimates coverage plots for **correlations**
+
++-------------------+----------------------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------+
+| Model             | Gaussian-distributed means                                                                               | $\chi^2$-distributed means                                                                           |
++===================+==========================================================================================================+======================================================================================================+
+| **AR(1)**         | Fixed res. var [{{< fa file-pdf >}}](./figures/caterpillar-Covariance-NAR-Gaussian-resid.fixed.pdf)      | Fixed res. var [{{< fa file-pdf >}}](./figures/caterpillar-Covariance-NAR-Chi2-resid.fixed.pdf)      |
+|                   |                                                                                                          |                                                                                                      |
+|                   | Random res. var [{{< fa file-pdf >}}](./figures/caterpillar-Covariance-NAR-Gaussian-resid.random.pdf)    | Random res. var [{{< fa file-pdf >}}](./figures/caterpillar-Covariance-NAR-Chi2-resid.random.pdf)    |
+|                   |                                                                                                          |                                                                                                      |
+|                   | Combined [{{< fa file-pdf >}}](./figures/caterpillar-Covariance-NAR-Gaussian-both.pdf)                   | Combined [{{< fa file-pdf >}}](./figures/caterpillar-Covariance-NAR-Chi2-both.pdf)                   |
++-------------------+----------------------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------+
+| $\chi^2$**AR(1)** | Fixed res. var [{{< fa file-pdf >}}](./figures/caterpillar-Covariance-Chi2AR-Gaussian-resid.fixed.pdf)   | Fixed res. var [{{< fa file-pdf >}}](./figures/caterpillar-Covariance-Chi2AR-Chi2-resid.fixed.pdf)   |
+|                   |                                                                                                          |                                                                                                      |
+|                   | Random res. var [{{< fa file-pdf >}}](./figures/caterpillar-Covariance-Chi2AR-Gaussian-resid.random.pdf) | Random res. var [{{< fa file-pdf >}}](./figures/caterpillar-Covariance-Chi2AR-Chi2-resid.random.pdf) |
+|                   |                                                                                                          |                                                                                                      |
+|                   | Combined [{{< fa file-pdf >}}](./figures/caterpillar-Covariance-Chi2AR-Gaussian-both.pdf)                | Combined [{{< fa file-pdf >}}](./figures/caterpillar-Covariance-Chi2AR-Chi2-both.pdf)                |
++-------------------+----------------------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------+
+| **BinAR(1)**      | Fixed res. var [{{< fa file-pdf >}}](./figures/caterpillar-Covariance-BinAR-Gaussian-resid.fixed.pdf)    | Fixed res. var [{{< fa file-pdf >}}](./figures/caterpillar-Covariance-BinAR-Chi2-resid.fixed.pdf)    |
+|                   |                                                                                                          |                                                                                                      |
+|                   | Random res. var [{{< fa file-pdf >}}](./figures/caterpillar-Covariance-BinAR-Gaussian-resid.random.pdf)  | Random res. var [{{< fa file-pdf >}}](./figures/caterpillar-Covariance-BinAR-Chi2-resid.random.pdf)  |
+|                   |                                                                                                          |                                                                                                      |
+|                   | Combined [{{< fa file-pdf >}}](./figures/caterpillar-Covariance-BinAR-Gaussian-both.pdf)                 | Combined [{{< fa file-pdf >}}](./figures/caterpillar-Covariance-BinAR-Chi2-both.pdf)                 |
++-------------------+----------------------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------+
+| **PoDAR(1)**      | Fixed res. var [{{< fa file-pdf >}}](./figures/caterpillar-Covariance-PoDAR-Gaussian-resid.fixed.pdf)    | Fixed res. var [{{< fa file-pdf >}}](./figures/caterpillar-Covariance-PoDAR-Chi2-resid.fixed.pdf)    |
+|                   |                                                                                                          |                                                                                                      |
+|                   | Random res. var [{{< fa file-pdf >}}](./figures/caterpillar-Covariance-PoDAR-Gaussian-resid.random.pdf)  | Random res. var [{{< fa file-pdf >}}](./figures/caterpillar-Covariance-PoDAR-Chi2-resid.random.pdf)  |
+|                   |                                                                                                          |                                                                                                      |
+|                   | Combined [{{< fa file-pdf >}}](./figures/caterpillar-Covariance-PoDAR-Gaussian-both.pdf)                 | Combined [{{< fa file-pdf >}}](./figures/caterpillar-Covariance-PoDAR-Chi2-both.pdf)                 |
++-------------------+----------------------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------+
+
+: MCMC parameter estimates coverage plots for **covariances**
 
 # Additional figures and analyses {#sec-additional-analyses-and-figures}
 
@@ -675,6 +780,8 @@ We make plots including time series plots, marginal distributions, and sample AC
 ```
 :::
 
+The generated time series plots of the AR(1) [{{< fa file-pdf >}}](./figures/Profile%20NAR.pdf), $\chi^2$AR(1) [{{< fa file-pdf >}}](./figures/Profile%20Chi2AR.pdf), BinAR(1) [{{< fa file-pdf >}}](./figures/Profile%20BinAR.pdf), and PoDAR(1) [{{< fa file-pdf >}}](./figures/Profile%20PoDAR.pdf) models are saved in the `figures` folder (see also combined plots, [{{< fa file-pdf >}}](./figures/Profile%20alternative%20DGMs.pdf) and [{{< fa file-pdf >}}](./figures/Profile%20four%20DGMs.pdf)).
+
 ## Profiles of the simulated datasets {#sec-profiles-of-simulated-datasets}
 
 We read the first replication of simulated datasets with $N = 100, T = 100$ and plot using the function `plot_dataset.profile` (from @sec-make-distribution-plots).
@@ -682,6 +789,8 @@ We read the first replication of simulated datasets with $N = 100, T = 100$ and 
 ```{r, eval = runComponent_Analysis}
 <<additional_plots_dataset_profiles>>
 ```
+
+The generated distribution plots of the AR(1) [{{< fa file-pdf >}}](./figures/profiles-dataset-nar.pdf), $\chi^2$AR(1) [{{< fa file-pdf >}}](./figures/profiles-dataset-chiar.pdf), BinAR(1) [{{< fa file-pdf >}}](./figures/profiles-dataset-binar.pdf), and PoDAR(1) [{{< fa file-pdf >}}](./figures/profiles-dataset-podar.pdf) models are saved in the figures folder.
 
 ## COGITO data analysis {#sec-cogito-data-analysis}
 

@@ -488,7 +488,7 @@ dgm_datasets_gaussian.means <- list(
   binar = "sim_uSeed-13286_l2.dist-Gaussian_Model-BinAR",
   podar = "sim_uSeed-13319_l2.dist-Gaussian_Model-PoDAR"
 ) %>%
-  lapply(function(x) read_rds(paste0("data_Rep-1/",
+  lapply(function(x) read_rds(paste0("simulation-files/fit-files/",
                                      x,
                                      "_N-100_phi-0.4_T-100_sim.Seed-0_Rep-1.rds")))
 
@@ -499,7 +499,7 @@ dgm_datasets_chi2.means <- list(
   binar = "sim_uSeed-13293_l2.dist-Chi2_Model-BinAR",
   podar = "sim_uSeed-13326_l2.dist-Chi2_Model-PoDAR"
 ) %>%
-  lapply(function(x) read_rds(paste0("data_Rep-1/",
+  lapply(function(x) read_rds(paste0("simulation-files/fit-files/",
                                      x,
                                      "_N-100_phi-0.4_T-100_sim.Seed-0_Rep-1.rds")))
 
@@ -516,6 +516,6 @@ purrr::pwalk(
   ~ save_dataset_profile(..1,
                          ..2,
                          paste0("profiles-dataset-", ..3))
-)
 
+)
 
