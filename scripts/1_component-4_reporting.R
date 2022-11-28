@@ -586,8 +586,10 @@ plot_Model.x.Resid <- function(d_important,
                                Means.dist = c("Gaussian", "Chi2"),
                                line.width = 1,
                                font.scale = 5) {
+
   ddd <- d_important %>%
     filter(parameter == which.parameter)
+
 
   if (!grepl("error",
              tolower(which.measure),
@@ -596,6 +598,7 @@ plot_Model.x.Resid <- function(d_important,
     ddd <- ddd %>% filter(sign.X.sig == "Zero")
     y.axis <- which.measure
   }
+
 
   if (grepl("positive",
             tolower(which.measure),
@@ -629,8 +632,12 @@ plot_Model.x.Resid <- function(d_important,
   y.range[1] <- min(-0.001, y.range[1])
   y.range[2] <- max(0.001, y.range[2])
 
+  ## Making sure the zero values in errors are not missing
   ddd <- ddd  %>%
-    filter(l2.dist == Means.dist)
+    filter(l2.dist == Means.dist) %>%
+    ungroup() %>%
+    complete(Resid, `Model name`, N, T,
+             fill = list(value = 0))
 
   ddd$N <- as.factor(ddd$N)
   ddd$T <- as.factor(ddd$T)
@@ -650,7 +657,7 @@ plot_Model.x.Resid <- function(d_important,
       group = N,
       color = N
     ) +
-    ## make solid y=0 axis line
+    ## draw solid y=0 axis line
     geom_hline(
       yintercept = 0,
       linetype = "solid",
@@ -691,7 +698,7 @@ plot_Model.x.Resid <- function(d_important,
         group = N,
         color = N
       ) +
-      ## make solid y=0 axis line
+      ## draw solid y=0 axis line
       geom_hline(
         yintercept = 0,
         linetype = "solid",
@@ -718,27 +725,24 @@ plot_Model.x.Resid <- function(d_important,
       theme_light() +
       theme_pubclean() +
       scale_y_continuous(breaks = c(2.5, 10, 20, 40, 60, 80, 90, 100),
-                         # looked up myself to assure  + and - ranges are equal
+                         ## looked up myself to assure  + and - ranges are equal
                          limits = c(0, 61)) +
       ylab(y.axis) +
       ggtitle(title) +
       theme(
-        plot.title = element_text(#size = rel(1.5),# 4*font.scale,
+        plot.title = element_text(
           family = "CMU Serif"),
         panel.spacing = unit(0.7, "lines"),
         legend.position = "bottom",
         legend.key = element_rect(colour = NA, fill = NA),
         legend.key.width = unit(10, "mm"),
-        # legend.key.height = unit(10, "mm"),
         text = element_text(size = 10,
                             family = "CMU Serif"),
         ## remove grid lines
         panel.grid.major.y = element_blank()
       )
-    # add thresholds
-    # geom_hline(yintercept = 2.5,
-    #            linetype = "dotted",
-    #            alpha = 0.7) +
+
+    ## add thresholds
     if (y.axis == "Total error")
       output.plot <- output.plot +
         geom_hline(yintercept = 5,

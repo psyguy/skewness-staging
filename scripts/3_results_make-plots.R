@@ -57,7 +57,7 @@ for (parameter in c("Correlation", "Covariance")) {
       plot_layout(guides = "collect") +
       plot_annotation(
         ## removed the big title and subtitle  here
-        ##title = TeX(title),
+        # title = TeX(title),
         theme = theme(plot.title =
                         element_text(size = 20,
                                      family = "CMU Serif",
@@ -65,7 +65,7 @@ for (parameter in c("Correlation", "Covariance")) {
       ) &
       theme(legend.position = "bottom")
 
-    if(grepl("error", tolower(outcome), fixed = TRUE)) p.final <- p.final &
+    if(grepl("error", tolower(outcome), fixed = TRUE)) p.final <- p.final +
       scale_y_continuous(breaks = c(5, 10, 20, 40, 60, 80, 90, 100))
 
 
