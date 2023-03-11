@@ -248,11 +248,18 @@ do_sim_parallel <-
 
                              sim.StartTime <- Sys.time()
 
-                             output.dataset <-
+                             output_make_datasets <-
                                do.call(make_datasets,
                                        arguments)
 
-                             d_i$sim.Dataset <- output.dataset
+                             if(is.data.frame(output_make_datasets)){
+                               d_i$sim.Dataset <- output_make_datasets
+                             }else{
+                               # Adapting for v2 implementation
+                               d_i$sim.Dataset <- output_make_datasets$dataset
+                               d_i$given.Means <- output_make_datasets$Means
+                               d_i$given.Phis <- output_make_datasets$Phis
+                               }
                              d_i$sim.StartTime <- sim.StartTime
                              d_i$sim.EndTime <- Sys.time()
                              d_i$sim.ElapsedTime <-
@@ -287,7 +294,8 @@ do_fit_doFuture <- function(fit_refs,
                             clusterLOG.filename = paste0("fit_clusterLOG_",
                                                          Sys.Date(),
                                                          ".txt"),
-                            sleeptime = 1) {
+                            sleeptime = 1,
+                            version = "v2") {
 
   ## To make sure the required functions are loaded on each cluster
   library(tidyverse)
@@ -317,11 +325,19 @@ do_fit_doFuture <- function(fit_refs,
                 fit.StartTime <-
                   Sys.time()
 
-                df <-
-                  readRDS(file = here::here(d_i$sim.Path,
-                                            d_i$sim.File))$sim.Dataset %>%
+                sim.file <- readRDS(file = here::here(d_i$sim.Path,
+                                            d_i$sim.File))
+
+                df <- sim.file$sim.Dataset %>%
                   filter(subject <= d_i$N,
                          t <= d_i$T)
+
+                # Adapting for v2 implementation
+                df_sum <- df %>%
+                  group_by(subject) %>%
+                  summarise(sample.Means = mean(x),
+                            sample.Variances = var(x),
+                            sample.Skewnesses = moments::skewness(x))
 
                 file.name <-
                   gsub(".rds", "", d_i$fit.File)
@@ -343,6 +359,16 @@ do_fit_doFuture <- function(fit_refs,
 
                 d_i$fit.Dataset <-
                   tryRes
+
+                # Adapting for v2 implementation
+                d_i$given.Means <- sim.file$Means %>% head(d_i$N)
+                d_i$given.Phis <- sim.file$Phis %>% head(d_i$N)
+
+                # Adapting for v2 implementation
+                d_i$sample.Means <- df_sum$sample.Means
+                d_i$sample.Variances <- df_sum$sample.Variances
+                d_i$sample.Skewnesses <- df_sum$sample.Skewnesses
+
                 d_i$fit.StartTime <-
                   fit.StartTime
                 d_i$fit.EndTime <-

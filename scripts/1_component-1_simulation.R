@@ -783,6 +783,7 @@ dgm_make.sample <- function(Model = "ChiAR(1)",
                             Means = rnorm(100, 5, 3),
                             T = 100,
                             phi = 0.4,
+                            Phis = NULL,
                             seeds = NULL
 ){
 
@@ -796,12 +797,15 @@ dgm_make.sample <- function(Model = "ChiAR(1)",
                    t = rep(1:T, times = N),
                    x = rep(NA, N*T))
 
+  # Adapting for v2 implementation
+  if(length(Phis) != N) Phis <- rep(phi, N)
+
   for(s in 1:N){
     x <- dgm_generator(
       Model = Model,
       only.ts = TRUE,
       T = T,
-      phi = phi,
+      phi = Phis[s],
       Mean = Means[s],
       seed = seeds[s])
 
@@ -917,7 +921,8 @@ make_datasets <- function(Model = "DAR",
                           N = 100,
                           phi = 0.4,
                           l2.distribution = "Gaussian",
-                          uSeed = 0) {
+                          uSeed = 0,
+                          version = "v2") {
   # save global seed of the global env and set it back before leaving
   seed.old <- .Random.seed
   on.exit({
@@ -974,14 +979,34 @@ make_datasets <- function(Model = "DAR",
   # keeping N samples from the in-bound means
   Means <- Means %>% na.omit() %>% sample(N)
 
+  # Adapting for v2 implementation
+  Phis <- rep(phi, N)
+
+  ## Implementing v2
+  if(version == "v2"){
+    # sampling within-person phis
+    Phis <- rnorm(2 * N, phi, 0.1)
+
+    # removing out-of-bounds phis
+    Phis[Phis <= 0] <- NA
+    Phis[Phis >= 1] <- NA
+
+    # keeping N samples from the in-bound means
+    Phis <- Phis %>% na.omit() %>% sample(N)
+  }
+
   # Making a dataframe using dgm_make.sample
   sample_df <- dgm_make.sample(
     Model = Model,
     Means = Means,
     T = T,
-    phi = phi,
+    Phis = Phis,
     seeds = NULL
   )
 
+  if(version == "v2") return(list(dataset = sample_df,
+                                  Means = Means,
+                                  Phis = Phis))
   return(sample_df)
+
 }

@@ -78,6 +78,12 @@ And the components were placed in a **pipeline**, that managed:
 
 This document is structured as follows. In @sec-components, we explain the four components and the functions used therein. Then, in @sec-pipeline we explain the wrapper functions used in the pipeline, and show how the pipeline was---and can be---executed. Then, in @sec-simulation-results, we discuss how the harvested data was used to make the figures used in the paper (and others that were not included). Finally, in @sec-additional-analyses-and-figures we discuss how supplementary plots were made and how the empirical data analysis [on COGITO data; @schmiedek_2010_HundredDaysCognitive] was done. Note that although the codes provided here are cleaned as much as possible, they are not necessarily succinctly written; some functions were written to accommodate the most general functionalities which turned out to be not necessary for the simulation study.
 
+::: callout-important
+## Addendum: Version 2
+
+Following a request from a reviewer to implement and run another set of analyses, some additional functions and adaptations have been made. These changes are specified with `v2` throughout this document and in codes and do not change the legacy code and text.
+:::
+
 The [GitHub {{< fa brands github >}} repository of this study](https://github.com/psyguy/skewness-staging) contains all of the code necessary to run the study (in the `scripts` folder [{{< fa globe >}}](https://github.com/psyguy/skewness-staging/tree/main/scripts)). Furthermore, because running the whole study would take a huge amount of time (it took us more than 88 days on a 24-core server and produced 2.69 TB of data), the the raw and summarized datasets of the estimated parameters are provided in `simulation-files/harvests` [{{< fa globe >}}](https://github.com/psyguy/skewness-staging/tree/main/simulation-files/harvest-files). To give an impression of the simulated datasets and the analysis output files, the `.rds` files of the first replication of the study are also provided in `simulation-files` folder [{{< fa globe >}}](https://github.com/psyguy/skewness-staging/tree/main/simulation-files), and the *M*plus files of the first replication of the $N=100, T=100$ condition is provided in the `Mplus-files` folder [{{< fa globe >}}](https://github.com/psyguy/skewness-staging/tree/main/Mplus-files). Finally, all the figures that can be generated based on the study results are provided in the `figures` folder [{{< fa globe >}}](https://github.com/psyguy/skewness-staging/tree/main/figures). The figures are also referenced individually in @sec-simulation-results and @sec-additional-analyses-and-figures of this document.
 
 To replicate the study from the scratch, you should first either clone the repository (using `git clone https://github.com/psyguy/skewness-staging.git`) or [download the repository as a zip file {{< fa download >}}](https://github.com/psyguy/skewness-staging/archive/refs/heads/main.zip) and extract it on your machine. Then you can sequentially run the `.R` files you find in the `scripts` folder. Note that you would need to have a licensed version of *M*plus version 8.6 [@muthen_2017_MplusUserGuide] on your machine to run the whole study. Instead of running the scripts separately, if you have [Quarto installed {{< fa globe >}}](https://quarto.org/docs/get-started/), you can also compile `Code documentations.qmd` located in the root directory using Quarto after setting the following variables to `TRUE`:
@@ -363,6 +369,14 @@ ggsave("Mean_vs_Skewness.png",
 
 We then use a wrapper (`make_datasets`) around `dgm_make.sample` that generates datasets for all four DGMs with the appropriate level-2 parameters specified above. Note that here we first generate more than enough (i.e., $2 \times N$) samples of means to make sure we end up with $N$ samples after applying the upper and lower bounds. The datasets are then saved, with some additional variables in separate `.rds` files, using wrapper functions described in @sec-pipeline-functions.
 
+::: callout-note
+## Addendum: Version 2
+
+By setting `version = "v2"` in `make_datasets` (now the default), the vector of `Phis` is randomly drawn from $\mathcal{N}(0.4, \sqrt{0.1})$. More specifically, like the means, $2 \times N$ values of $\phi$ are generated, the values not between 0 and 1 are removed, and $N$ values are randomly drawn from the remaining.
+
+The function returns a list in this case, which contain the generated dataset `dataset`, and the vectors of means `Means` and $\phi$s `Phis` used to generate it.
+:::
+
 ```{r, eval = study_Initialize}
 <<make_datasets>>
 ```
@@ -371,6 +385,12 @@ We then use a wrapper (`make_datasets`) around `dgm_make.sample` that generates 
 ## The *Analysis* component {#sec-analysis-component}
 
 We analyzed each dataset with AR(1) models with fixed and random residual variance using *M*plus v. 8.1 [@muthen_2017_MplusUserGuide]. To interface *M*plus from R, we used the package `MplusAutomation` [@hallquist_2018_MplusAutomationPackageFacilitating] and wrote a function (`run_MplusAutomation`) that for each iteration of each condition would save the dataset as a `.dat` file, generate the `.inp` input script for the desired analysis type, and run the model for that dataset. *M*plus then saves the output files (`.out` and `.gh5`). After the analysis, `run_MplusAutomation` extracts parameter estimates and returns them in an `R` object, which, with some additional variables, are saved in separate `.rds` files using wrapper functions described in @sec-pipeline-functions.
+
+::: callout-note
+## Addendum: Version 2
+
+In `v2`, to make the analysis and data storage more efficient, `run_MplusAutomation` removes the *M*plus files generated by `MplusAutomation::mplusModeler` (`.inp`, `.dat`, `.out`, and `.gh5`), and drops `$results$gh5` from `mplusModeler`'s output (which would save a lot of space).
+:::
 
 ```{r, eval = study_Initialize}
 <<run_MplusAutomation>>
@@ -553,6 +573,12 @@ We implemented the components described in @sec-components using the following f
 
 The function `do_sim_parallel` is a wrapper around `make_datasets` (see @sec-dataset-generation) and uses the `clusterApplyLB` function from the package `snow` [@tierney_2021_SnowSimpleNetwork] for parallelization. This wrapper gets the dataframe of simulation file references (`sim_refs`, which is the output of `make_sim_refs`), and for each of its rows, simulates an $N \times T$ dataframe and stores it with other information in the same row---and also additional info about the time the simulating the dataset started and ended---in a list, and saves each list as a separate `.rds` file in the target folder (specified with `sim.Path`). Having the additional data in the saved files allow using them independent from the table of references. Note that to prevent the overload of the hard drive with many parallel write requests (to save the simulated datasets), for the first `nClust` rounds, using the `Sys.sleep` function, the data generation is started after a varying amount of delay. Given that every dataset simulation in the first round may take different amount of times, after the first round is complete, the simulations on different cores fall out of sync and there is no more need for adding delays for the next rounds.
 
+::: callout-note
+## Addendum: Version 2
+
+In `v2`, `make_dataset` returns a list. Note that `do_sim_parallel` also saves the vectors of means and $\phi$s in the saved simulation file as `$given.Means` and `$given.Phis`.
+:::
+
 ```{r, eval = study_Initialize}
 <<do_sim_parallel>>
 ```
@@ -560,6 +586,12 @@ The function `do_sim_parallel` is a wrapper around `make_datasets` (see @sec-dat
 ### Analysis in parallel
 
 The function `do_fit_doFuture` is a wrapper around `run_MplusAutomation` (see @sec-analysis-component) and uses the package `doFuture` [@bengtsson_2021_UnifyingFrameworkParallel] as a parallelization backend to `plyr::a_ply`. The function gets a dataframe containing references of analyses results (`fit_refs`, which is the output of `make_fit_refs`), and row by row reads the simulated datasets, sub-samples the data if $N < 100$ or $T < 100$ (see the second note under `make_sim_refs` in @sec-bookkeeping) and runs the analysis based on the hyperparameters specified in `fit_refs`. It then saves the outcome of the analysis (the *M*plus model object produced by `MplusAutomation::mplusModeler` and returned by `run_MplusAutomation`), which includes *M*plus outputs and parameter estimates) with additional information (other values in the same row of `fit_refs` as well as timings) in separate `.rds` files in the target folder. Note that, again, to prevent the overload of the hard drive with many parallel read and write requests (to read the simulated datasets and save the *M*plus outputs), for the first `nClust` rounds, using the `Sys.sleep` function, the data analysis is started after a varying amount of delay. Given that every analysis instance in the first round take different amount of times, after the first round is complete the analyses on cores fall out of sync and there is no more need for adding delays for the next rounds.
+
+::: callout-note
+## Addendum: Version 2
+
+In `v2`, the `given.Means` and `given.Phis` of the $N$ subjects included in the analysis, as well as the sample summary statistics of the sub-sampled dataset (`sample.Means`, `sample.Variances`, and `sample.Skewnesses`) are also saved in the fit object.
+:::
 
 ```{r, eval = study_Initialize}
 <<do_fit_doFuture>>
@@ -640,15 +672,23 @@ The left and right panels (including results for Gaussian and $\chi^2$ distribut
 ::: {.content-visible when-format="html"}
 The generated plots are located in `figures` folder and can be accessed via the following tables:
 
++----------------------------+-----------------------------------------------------------------------+----------------------------------------------------------------------+
 | Outcome measures           | Correlations                                                          | Covariances                                                          |
-|----------------------------|-----------------------------------------------------------------------|----------------------------------------------------------------------|
++============================+=======================================================================+======================================================================+
 | Bias                       | [{{< fa file-pdf >}}](./figures/Correlation%20(Bias).pdf)             | [{{< fa file-pdf >}}](./figures/Covariance%20(Bias).pdf)             |
++----------------------------+-----------------------------------------------------------------------+----------------------------------------------------------------------+
 | Variance                   | [{{< fa file-pdf >}}](./figures/Correlation%20(Variance).pdf)         | [{{< fa file-pdf >}}](./figures/Covariance%20(Variance).pdf)         |
++----------------------------+-----------------------------------------------------------------------+----------------------------------------------------------------------+
 | RMSE                       | [{{< fa file-pdf >}}](./figures/Correlation%20(RMSE).pdf)             | [{{< fa file-pdf >}}](./figures/Covariance%20(RMSE).pdf)             |
++----------------------------+-----------------------------------------------------------------------+----------------------------------------------------------------------+
 | MAE                        | [{{< fa file-pdf >}}](./figures/Correlation%20(MAE).pdf)              | [{{< fa file-pdf >}}](./figures/Covariance%20(MAE).pdf)              |
++----------------------------+-----------------------------------------------------------------------+----------------------------------------------------------------------+
 | Positive Type-I error rate | [{{< fa file-pdf >}}](./figures/Correlation%20(Positive%20error).pdf) | [{{< fa file-pdf >}}](./figures/Covariance%20(Positive%20error).pdf) |
++----------------------------+-----------------------------------------------------------------------+----------------------------------------------------------------------+
 | Negative Type-I error rate | [{{< fa file-pdf >}}](./figures/Correlation%20(Negative%20error).pdf) | [{{< fa file-pdf >}}](./figures/Covariance%20(Negative%20error).pdf) |
++----------------------------+-----------------------------------------------------------------------+----------------------------------------------------------------------+
 | Total Type-I error rate    | [{{< fa file-pdf >}}](./figures/Correlation%20(Total%20error).pdf)    | [{{< fa file-pdf >}}](./figures/Covariance%20(Total%20error).pdf)    |
++----------------------------+-----------------------------------------------------------------------+----------------------------------------------------------------------+
 
 : Individual plots of outcome measures
 :::
@@ -663,14 +703,21 @@ The plots containing pairs of outcome measures (respectively including results f
 
 The generated plots are located in `figures` folder and can be accessed via the following tables:
 
++------------------------------------+------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
 | Outcome measures                   | Correlations                                                                                   | Covariances                                                                                   |
-|------------------------------------|------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------|
++====================================+================================================================================================+===============================================================================================+
 | Bias and Variance                  | [{{< fa file-pdf >}}](./figures/Correlation%20(Bias%20and%20Variance).pdf)                     | [{{< fa file-pdf >}}](./figures/Covariance%20(Bias%20and%20Variance).pdf)                     |
++------------------------------------+------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
 | Bias and RMSE                      | [{{< fa file-pdf >}}](./figures/Correlation%20(Bias%20and%20RMSE).pdf)                         | [{{< fa file-pdf >}}](./figures/Covariance%20(Bias%20and%20RMSE).pdf)                         |
++------------------------------------+------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
 | Bias and MAE                       | [{{< fa file-pdf >}}](./figures/Correlation%20(Bias%20and%20MAE).pdf)                          | [{{< fa file-pdf >}}](./figures/Covariance%20(Bias%20and%20MAE).pdf)                          |
++------------------------------------+------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
 | Positive and negative Type-I error | [{{< fa file-pdf >}}](./figures/Correlation%20(Positive%20error%20and%20Negative%20error).pdf) | [{{< fa file-pdf >}}](./figures/Covariance%20(Positive%20error%20and%20Negative%20error).pdf) |
++------------------------------------+------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
 | Positive and total Type-I error    | [{{< fa file-pdf >}}](./figures/Correlation%20(Positive%20error%20and%20Total%20error).pdf)    | [{{< fa file-pdf >}}](./figures/Covariance%20(Positive%20error%20and%20Total%20error).pdf)    |
++------------------------------------+------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
 | Negative and total Type-I error    | [{{< fa file-pdf >}}](./figures/Correlation%20(Negative%20error%20and%20Total%20error).pdf)    | [{{< fa file-pdf >}}](./figures/Covariance%20(Negative%20error%20and%20Total%20error).pdf)    |
++------------------------------------+------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
 
 : Combined plots of two outcome measures
 :::
