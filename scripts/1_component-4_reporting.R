@@ -96,7 +96,7 @@ harvest_cleanup <- function(harv,
     mutate(ord = order(est) - n()/2) %>%
     group_by(sign.X.sig,
              .add = TRUE) %>%
-    mutate(percent = round(100 * n() / n.converged.datasets, 1),
+    mutate(percent = round(100 * n()/3 / n.converged.datasets, 1),
            .after = sign.X.sig) %>%
     relocate(sign.X.sig:nonconverged.percent,
              .after = parameter) %>%

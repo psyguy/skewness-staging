@@ -200,7 +200,6 @@ make_fit_refs <-
 ## @knitr do_sim_parallel
 
 
-
 do_sim_parallel <-
   function(sim_refs,
            nClust = 48,
@@ -210,73 +209,70 @@ do_sim_parallel <-
                                         Sys.Date(),
                                         ".txt"),
            sleeptime = 1) {
-    cl <- snow::makeSOCKcluster(nClust,
-                                outfile = here::here(save.directory,
-                                                     clusterLOG.filename))
+    # cl <- snow::makeSOCKcluster(nClust,
+    #                             outfile = here::here(save.directory,
+    #                                                  clusterLOG.filename))
     debug <- TRUE
 
     d <- sim_refs
 
+    registerDoFuture()
 
-    ## Start clusters:
+    plan("multisession")
 
-    snow::clusterExport(cl,
-                        c("d",
-                          "alternative.sim.Path",
-                          "debug"),
-                        envir = environment())
+    ## To make sure the required functions are loaded on each cluster
+    library(tidyverse)
+    source(here::here("scripts",
+                      "1_component-1_simulation.R"))
+    plyr::a_ply(d,
+                1,
+                function(d_i) {
+                  # if (i <= nClust)
+                  #   Sys.sleep(sleeptime * i)
 
-    ## Get the timings
+                  d_i <- as.list(d_i)
 
-    t.snow <- snow::snow.time({
-      ## Run the cluster
-      snow::clusterApplyLB(cl = cl,
-                           seq_len(nrow(d)),
-                           function(i) {
-                             if (i <= nClust)
-                               Sys.sleep(sleeptime * i)
+                  arguments <-
+                    as.list(d_i[2:(length(d_i) - 4)])
+                  arguments$seed <- d_i$uSeed
 
-                             d_i <- as.list(d[i,])
-                             arguments <-
-                               as.list(d_i[2:(length(d_i) - 4)])
-                             arguments$seed <- d_i$uSeed
+                  sim.Path <-
+                    ifelse(is.null(alternative.sim.Path),
+                           d_i$sim.Path,
+                           alternative.sim.Path)
 
-                             sim.Path <-
-                               ifelse(is.null(alternative.sim.Path),
-                                      d_i$sim.Path,
-                                      alternative.sim.Path)
+                  sim.StartTime <- Sys.time()
 
-                             sim.StartTime <- Sys.time()
+                  output_make_datasets <-
+                    do.call(make_datasets,
+                            arguments)
 
-                             output.dataset <-
-                               do.call(make_datasets,
-                                       arguments)
+                  if (is.data.frame(output_make_datasets)) {
+                    d_i$sim.Dataset <- output_make_datasets
+                  } else{
+                    # Adapting for v2 implementation
+                    d_i$sim.Dataset <-
+                      output_make_datasets$dataset
+                    d_i$given.Means <-
+                      output_make_datasets$Means
+                    d_i$given.Phis <-
+                      output_make_datasets$Phis
+                  }
+                  d_i$sim.StartTime <- sim.StartTime
+                  d_i$sim.EndTime <- Sys.time()
+                  d_i$sim.ElapsedTime <-
+                    d_i$sim.EndTime - d_i$sim.StartTime
 
-                             d_i$sim.Dataset <- output.dataset
-                             d_i$sim.StartTime <- sim.StartTime
-                             d_i$sim.EndTime <- Sys.time()
-                             d_i$sim.ElapsedTime <-
-                               d_i$sim.EndTime - d_i$sim.StartTime
+                  saveRDS(d_i,
+                          file = here::here(sim.Path,
+                                            d_i$sim.File))
 
-                             saveRDS(d_i,
-                                     file = here::here(sim.Path,
-                                                       d_i$sim.File))
-
-                           })
-
-    })
-
-    ## Stop the cluster:
-    snow::stopCluster(cl)
-
-    return(t.snow)
+                })
 
   }
 
 
 ## @knitr do_fit_doFuture
-
-
 
 do_fit_doFuture <- function(fit_refs,
                             nClust = 48,
@@ -287,12 +283,13 @@ do_fit_doFuture <- function(fit_refs,
                             clusterLOG.filename = paste0("fit_clusterLOG_",
                                                          Sys.Date(),
                                                          ".txt"),
-                            sleeptime = 1) {
+                            sleeptime = 1,
+                            version = "v2") {
 
   ## To make sure the required functions are loaded on each cluster
   library(tidyverse)
   source(here::here("scripts",
-                    "analysis-component.R"))
+                    "1_component-2_analysis.R"))
 
 
 
@@ -309,19 +306,27 @@ do_fit_doFuture <- function(fit_refs,
   plyr::a_ply(d,
               1,
               function(d_i) {
-                if (i <= nClust)
-                  Sys.sleep(sleeptime * i)
+                # if (i <= nClust)
+                #   Sys.sleep(sleeptime * i)
 
                 d_i <- as.list(d_i)
 
                 fit.StartTime <-
                   Sys.time()
 
-                df <-
-                  readRDS(file = here::here(d_i$sim.Path,
-                                            d_i$sim.File))$sim.Dataset %>%
+                sim.file <- readRDS(file = here::here(d_i$sim.Path,
+                                                      d_i$sim.File))
+
+                df <- sim.file$sim.Dataset %>%
                   filter(subject <= d_i$N,
                          t <= d_i$T)
+
+                # Adapting for v2 implementation
+                df_sum <- df %>%
+                  group_by(subject) %>%
+                  summarise(sample.Means = mean(x),
+                            sample.Variances = var(x),
+                            sample.Skewnesses = moments::skewness(x))
 
                 file.name <-
                   gsub(".rds", "", d_i$fit.File)
@@ -343,6 +348,16 @@ do_fit_doFuture <- function(fit_refs,
 
                 d_i$fit.Dataset <-
                   tryRes
+
+                # Adapting for v2 implementation
+                d_i$given.Means <- sim.file$given.Means %>% head(d_i$N)
+                d_i$given.Phis <- sim.file$given.Phis %>% head(d_i$N)
+
+                # Adapting for v2 implementation
+                d_i$sample.Means <- df_sum$sample.Means
+                d_i$sample.Variances <- df_sum$sample.Variances
+                d_i$sample.Skewnesses <- df_sum$sample.Skewnesses
+
                 d_i$fit.StartTime <-
                   fit.StartTime
                 d_i$fit.EndTime <-
@@ -373,7 +388,7 @@ do_fit_doFuture <- function(fit_refs,
 
 
 do_harvest_doFuture <- function(fit.files,
-                                nClust = 48,
+                                nClust = 46,
                                 sleeptime = 1){
 
   registerDoFuture()
@@ -393,55 +408,55 @@ do_harvest_doFuture <- function(fit.files,
 
 ## @knitr pipeline_make_references
 
-sim_refs_base <- make_sim_refs(
-  conditions = list(
-    T = c(30, 100),
-    N = c(100),
-    Model = c("BinAR",
-              "Chi2AR",
-              "DAR",
-              "PoDAR",
-              "NAR"),
-    l2.dist = c("Gaussian",
-                "Chi2"),
-    phi = c(0.4)
-  ),
-  simSeed = 0,
-  Reps = 1000,
-  save.directory = dir_simulation
-) %>%
-  filter(T == 100, Model != "DAR")
-
-## Adding another values for N and T; see the text
-
-sim_refs <- NULL
-
-for (TT in c(25, 50, 100)) {
-  for (NN in c(25, 50, 100)) {
-    sim_refs <- sim_refs_base %>%
-      mutate(N = NN,
-             T = TT) %>%
-      rbind(sim_refs)
-  }
-}
-
-## Saving a backup of the dataframe of references of simulation files
-
-saveRDS(sim_refs,
-        here::here(dir_references,
-                   "sim-refs.rds"))
-
-## Making the dataframe of analysis output reference files
-
-fit_refs <- make_fit_refs(sim_refs = sim_refs,
-                          save.directory = dir_analysis)
-
-
-## Saving a backup of the dataframe of references of analysis output files
-
-saveRDS(fit_refs,
-        here::here(dir_references,
-                   "fit-refs.rds"))
+# sim_refs_base <- make_sim_refs(
+#   conditions = list(
+#     T = c(30, 100),
+#     N = c(100),
+#     Model = c("BinAR",
+#               "Chi2AR",
+#               "DAR",
+#               "PoDAR",
+#               "NAR"),
+#     l2.dist = c("Gaussian",
+#                 "Chi2"),
+#     phi = c(0.4)
+#   ),
+#   simSeed = 0,
+#   Reps = 1000,
+#   save.directory = dir_simulation
+# ) %>%
+#   filter(T == 100, Model != "DAR")
+#
+# ## Adding another values for N and T; see the text
+#
+# sim_refs <- NULL
+#
+# for (TT in c(25, 50, 100)) {
+#   for (NN in c(25, 50, 100)) {
+#     sim_refs <- sim_refs_base %>%
+#       mutate(N = NN,
+#              T = TT) %>%
+#       rbind(sim_refs)
+#   }
+# }
+#
+# ## Saving a backup of the dataframe of references of simulation files
+#
+# saveRDS(sim_refs,
+#         here::here(dir_references,
+#                    "sim-refs.rds"))
+#
+# ## Making the dataframe of analysis output reference files
+#
+# fit_refs <- make_fit_refs(sim_refs = sim_refs,
+#                           save.directory = dir_analysis)
+#
+#
+# ## Saving a backup of the dataframe of references of analysis output files
+#
+# saveRDS(fit_refs,
+#         here::here(dir_references,
+#                    "fit-refs.rds"))
 
 
 ## @knitr pipeline_set_directories

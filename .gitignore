@@ -5,6 +5,12 @@
 # Session Data files
 .RData
 
+# Mplus files
+Mplus-files/
+
+# Simulation and analysis files
+simulation-files
+
 # User-specific files
 .Ruserdata
 
@@ -39,3 +45,4 @@ vignettes/*.pdf
 .Renviron
 
 /.luarc.json
+.Rproj.user
